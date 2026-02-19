@@ -97,13 +97,18 @@ async function scrape() {
   if (tables.length > 0) {
     tables.each((_ti, table) => {
       const headerCells = [];
-      $(table)
-        .find("thead th, thead td, tr:first-child th, tr:first-child td")
-        .each((_i, el) => headerCells.push(clean($(el).text()).toLowerCase()));
+      // Prefer thead if present; otherwise fall back to first row
+      const theadRow = $(table).find("thead tr").first();
+      if (theadRow.length) {
+        theadRow.find("th, td").each((_i, el) => headerCells.push(clean($(el).text()).toLowerCase()));
+      } else {
+        $(table).find("tr").first().find("th, td")
+          .each((_i, el) => headerCells.push(clean($(el).text()).toLowerCase()));
+      }
 
       const rows =
         headerCells.length > 0
-          ? $(table).find("tbody tr, tr").slice(1)
+          ? $(table).find("tbody tr").add($(table).find("tr").slice(1))
           : $(table).find("tr");
 
       rows.each((_ri, row) => {

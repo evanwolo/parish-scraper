@@ -93,17 +93,33 @@ async function scrapeDetailPage(record) {
   let html;
   try { html = await fetchPage(url); } catch { return record; }
   const $ = cheerio.load(html);
-  const article = $("article");
-
-  // City & State – appears right after the parish name in the page text
+  const article = $("article, #content, main").first();
   const bodyText = $("body").text().replace(/\s+/g, " ");
-  const escaped = record.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const csMatch = bodyText.match(
-    new RegExp(escaped + "\\s+([A-Za-z][A-Za-z .'-]+),\\s*([A-Za-z][A-Za-z .'-]+?)\\s+(?:Founded|Diocese|$)", "i")
-  );
-  if (csMatch && !record.city) {
-    record.city = csMatch[1].trim();
-    record.state = csMatch[2].trim();
+
+  // City & State — try structured markup first, then regex on body text
+  if (!record.city) {
+    const locationEl = article.find(".field--name-field-city, [class*='city'], [class*='location'], .city-state").first();
+    if (locationEl.length) {
+      const locText = clean(locationEl.text());
+      const parts = locText.split(",").map(s => s.trim());
+      if (parts.length >= 2) {
+        record.city = parts[0];
+        record.state = parts[1];
+      } else if (parts[0]) {
+        record.city = parts[0];
+      }
+    }
+  }
+
+  if (!record.city) {
+    const escaped = record.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const csMatch = bodyText.match(
+      new RegExp(escaped + "\\s+([A-Za-z][A-Za-z .'-]+),\\s*([A-Za-z][A-Za-z .'-]+?)\\s+(?:Founded|Diocese|$)", "i")
+    );
+    if (csMatch) {
+      record.city = csMatch[1].trim();
+      record.state = csMatch[2].trim();
+    }
   }
 
   // Diocese & Deanery
@@ -114,13 +130,36 @@ async function scrapeDetailPage(record) {
     if (dnLink.length) record.deanery = clean(dnLink.text());
   }
 
-  // Mailing address
-  const addrBlock = bodyText.match(/Mailing address:\s*([\s\S]*?)(?:Parish Contacts|$)/i);
-  if (addrBlock && !record.address) {
-    record.address = addrBlock[1].replace(/\s+/g, " ").replace(/\s*(US|USA)\s*$/i, "").trim();
+  // ── Address extraction ──
+  // Strategy 1: <h2>Address</h2> followed by <p> (most OCA parish pages)
+  if (!record.address) {
+    $("h2").each((_i, el) => {
+      if (record.address) return; // already found
+      const heading = $(el).text().trim();
+      if (/^(mailing\s+)?address$/i.test(heading)) {
+        const nextP = $(el).nextAll("p").first();
+        if (nextP.length) {
+          const addrHtml = nextP.html() || "";
+          const lines = addrHtml
+            .split(/<br\s*\/?>/gi)
+            .map((l) => clean(cheerio.load(l).text()))
+            .filter(Boolean)
+            .filter((l) => !/^(US|USA)$/i.test(l)); // strip bare "USA" line
+          if (lines.length) record.address = lines.join(", ");
+        }
+      }
+    });
   }
 
-  // Clergy & phone from .contact blocks
+  // Strategy 2: "Mailing address:" in body text (fallback)
+  if (!record.address) {
+    const addrBlock = bodyText.match(/Mailing address:\s*([\s\S]*?)(?:Parish Contacts|$)/i);
+    if (addrBlock) {
+      record.address = addrBlock[1].replace(/\s+/g, " ").replace(/\s*(US|USA)\s*$/i, "").trim();
+    }
+  }
+
+  // ── Clergy & phone from .contact blocks ──
   const clergyParts = [];
   $(".contact").each((_i, el) => {
     const name = clean($(el).find(".name").text());
@@ -133,7 +172,17 @@ async function scrapeDetailPage(record) {
   });
   if (clergyParts.length) record.clergy = clergyParts.join("; ");
 
-  // Lat / Lng from embedded Google Maps JS
+  // ── Phone from <p>Office: ...</p> or <p>Phone: ...</p> (fallback) ──
+  if (!record.phone) {
+    $("p").each((_i, el) => {
+      if (record.phone) return;
+      const txt = $(el).text().trim();
+      const phoneMatch = txt.match(/^(?:Office|Phone|Tel|Telephone):\s*([\d(][\d\s\-().+]{6,})/i);
+      if (phoneMatch) record.phone = phoneMatch[1].trim();
+    });
+  }
+
+  // ── Lat / Lng from embedded Google Maps JS ──
   const scripts = $("script").toArray().map((s) => $(s).html() || "").join("\n");
   const latM = scripts.match(/new_latitude\s*=\s*'([^']+)'/);
   const lngM = scripts.match(/new_longitude\s*=\s*'([^']+)'/);

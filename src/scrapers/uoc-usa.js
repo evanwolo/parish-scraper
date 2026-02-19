@@ -10,6 +10,7 @@
 
 const cheerio = require("cheerio");
 const { fetchPage, clean, writeCSV, writeJSON, sleep } = require("../utils");
+const { geocodeBatch } = require("../geocode");
 
 const SOURCE_URL = "https://www.uocusa.org/directories_parishes";
 const SOURCE_NAME = "uoc-usa";
@@ -145,7 +146,11 @@ async function scrape() {
     return true;
   });
 
-  console.log(`[${SOURCE_NAME}] Found ${unique.length} parish(es).`);
+  console.log(`[${SOURCE_NAME}] Found ${unique.length} parish(es). Geocoding …`);
+
+  // Geocode records that have address but no coordinates
+  await geocodeBatch(unique, { label: SOURCE_NAME });
+
   return unique;
 }
 

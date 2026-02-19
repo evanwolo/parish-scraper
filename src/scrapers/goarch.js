@@ -44,7 +44,7 @@ async function tryAPI() {
 
   for (const url of apiUrls) {
     try {
-      const json = await fetchJSON(url);
+      const json = await fetchJSON(url, 1); // don't retry probes
       const arr = Array.isArray(json) ? json : (json?.data || json?.parishes || json?.results || []);
       if (arr.length > 0) {
         console.log(`[${SOURCE_NAME}] Got ${arr.length} records from API: ${url}`);

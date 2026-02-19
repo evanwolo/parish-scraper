@@ -10,7 +10,8 @@ const path = require("path");
 const fs = require("fs");
 const { sanitizeRecord } = require("./sanitize");
 const { deduplicate } = require("./dedup");
-const { getDb, initSchema, resetAll, closeDb } = require("./db");
+const { getDb, initSchema, resetAll, closeDb, migrate } = require("./db");
+const { getPatriarchate } = require("./diocese-lookup");
 
 const SOURCE_FILES = [
   "chicago-rocor.json",
@@ -61,20 +62,22 @@ function importParishes() {
     resetAll();
   } else {
     initSchema();
+    migrate(); // ensure patriarchate column exists
     db.exec(`DELETE FROM parishes;`);
   }
 
   const parishes = loadAllParishes();
 
   const insertStmt = db.prepare(`
-    INSERT INTO parishes (name, jurisdiction, diocese, deanery, city, state, zip, country, phone, website, lat, lng, address, clergy, source)
-    VALUES (@name, @jurisdiction, @diocese, @deanery, @city, @state, @zip, @country, @phone, @website, @lat, @lng, @address, @clergy, @source)
+    INSERT INTO parishes (name, patriarchate, jurisdiction, diocese, deanery, city, state, zip, country, phone, website, lat, lng, address, clergy, source)
+    VALUES (@name, @patriarchate, @jurisdiction, @diocese, @deanery, @city, @state, @zip, @country, @phone, @website, @lat, @lng, @address, @clergy, @source)
   `);
 
   const insertMany = db.transaction((records) => {
     for (const r of records) {
       insertStmt.run({
         name: r.name || "",
+        patriarchate: getPatriarchate(r.jurisdiction || ""),
         jurisdiction: r.jurisdiction || "",
         diocese: r.diocese || "",
         deanery: r.deanery || "",

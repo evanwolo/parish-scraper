@@ -46,15 +46,24 @@ const CA_PROVINCES = new Set([
 
 // ── Jurisdiction canonical names ──────────────────────────────────────
 const JURISDICTION_CANONICAL = {
+  // OCA
   rocor: "Russian Orthodox Church Outside of Russia (ROCOR)",
   "russian orthodox church outside of russia":
     "Russian Orthodox Church Outside of Russia (ROCOR)",
   "russian orthodox church outside russia":
     "Russian Orthodox Church Outside of Russia (ROCOR)",
+  roca: "Russian Orthodox Church Outside of Russia (ROCOR)",
+  "rocor western american diocese":
+    "Russian Orthodox Church Outside of Russia (ROCOR)",
+  "diocese of western america rocor":
+    "Russian Orthodox Church Outside of Russia (ROCOR)",
   oca: "Orthodox Church in America (OCA)",
   "orthodox church in america": "Orthodox Church in America (OCA)",
   "uoc-usa": "Ukrainian Orthodox Church of the USA (UOC-USA)",
+  uoc: "Ukrainian Orthodox Church of the USA (UOC-USA)",
   "ukrainian orthodox church of the usa":
+    "Ukrainian Orthodox Church of the USA (UOC-USA)",
+  "ukrainian orthodox church":
     "Ukrainian Orthodox Church of the USA (UOC-USA)",
   "antiochian orthodox christian archdiocese of north america":
     "Antiochian Orthodox Christian Archdiocese of North America",
@@ -62,11 +71,24 @@ const JURISDICTION_CANONICAL = {
     "Greek Orthodox Archdiocese of America",
   "serbian orthodox church in north and south america":
     "Serbian Orthodox Church in North and South America",
+  "new gracanica":
+    "Serbian Orthodox Church in North and South America",
+  "new gracanica metropolitanate":
+    "Serbian Orthodox Church in North and South America",
   "romanian orthodox archdiocese in the americas":
     "Romanian Orthodox Archdiocese in the Americas",
+  "romanian orthodox metropolia":
+    "Romanian Orthodox Archdiocese in the Americas",
+  roea: "Romanian Orthodox Archdiocese in the Americas",
+  // Romanian Episcopate is under OCA
+  "romanian episcopate": "Orthodox Church in America (OCA)",
+  "romanian orthodox episcopate of america": "Orthodox Church in America (OCA)",
   "bulgarian eastern orthodox diocese of the usa, canada, and australia":
     "Bulgarian Eastern Orthodox Diocese of the USA, Canada, and Australia",
   "georgian orthodox church": "Georgian Orthodox Church",
+  "georgian patriarchal parishes": "Georgian Orthodox Church",
+  "romanian orthodox metropolia of the americas":
+    "Romanian Orthodox Archdiocese in the Americas",
   "american carpatho-russian orthodox diocese":
     "American Carpatho-Russian Orthodox Diocese",
   "albanian orthodox diocese of america":
@@ -87,9 +109,15 @@ const JURISDICTION_CANONICAL = {
   "romanian orthodox": "Romanian Orthodox Archdiocese in the Americas",
   bulgarian: "Bulgarian Eastern Orthodox Diocese of the USA, Canada, and Australia",
   "bulgarian orthodox": "Bulgarian Eastern Orthodox Diocese of the USA, Canada, and Australia",
+  "bulgarian diocese": "Bulgarian Eastern Orthodox Diocese of the USA, Canada, and Australia",
+  "bulgarian eastern orthodox diocese": "Bulgarian Eastern Orthodox Diocese of the USA, Canada, and Australia",
+  albanian: "Albanian Orthodox Diocese of America",
+  "albanian orthodox": "Albanian Orthodox Diocese of America",
+  "albanian archdiocese": "Albanian Orthodox Diocese of America",
   mp: "Patriarchal Parishes of the Russian Orthodox Church in the USA",
   "moscow patriarchate": "Patriarchal Parishes of the Russian Orthodox Church in the USA",
   "patriarchal parishes": "Patriarchal Parishes of the Russian Orthodox Church in the USA",
+  georgian: "Georgian Orthodox Church",
 };
 
 // Infer jurisdiction from scraper source when the record has none
@@ -280,6 +308,24 @@ function sanitizePhone(raw) {
     return `(${area}) ${mid}-${last}`;
   }
 
+  // Handle 011 prefix (US international dialing convention)
+  if (digits.startsWith("011")) {
+    const stripped = digits.slice(3);
+    // 011-1-XXX-XXX-XXXX → US number
+    if (stripped.length === 11 && stripped.startsWith("1")) {
+      const area = stripped.slice(1, 4);
+      const mid = stripped.slice(4, 7);
+      const last = stripped.slice(7);
+      return `(${area}) ${mid}-${last}`;
+    }
+    if (stripped.length === 10) {
+      const area = stripped.slice(0, 3);
+      const mid = stripped.slice(3, 6);
+      const last = stripped.slice(6);
+      return `(${area}) ${mid}-${last}`;
+    }
+  }
+
   // International: keep the + prefix, group digits readably
   if (hasPlus || digits.length > 10) {
     return "+" + digits;
@@ -334,18 +380,18 @@ function sanitizeWebsite(raw, source) {
 
 /**
  * Validate and normalise a latitude or longitude value.
- * Returns a string with up to 7 decimal places, or "" if invalid.
+ * Returns a number with up to 7 decimal places, or null if invalid.
  */
 function sanitizeLatLng(raw, type) {
-  if (raw === "" || raw === null || raw === undefined) return "";
+  if (raw === "" || raw === null || raw === undefined) return null;
   const n = parseFloat(raw);
-  if (isNaN(n)) return "";
+  if (isNaN(n)) return null;
 
   // Basic range validation
-  if (type === "lat" && (n < -90 || n > 90)) return "";
-  if (type === "lng" && (n < -180 || n > 180)) return "";
+  if (type === "lat" && (n < -90 || n > 90)) return null;
+  if (type === "lng" && (n < -180 || n > 180)) return null;
 
-  return n.toFixed(7);
+  return parseFloat(n.toFixed(7)); // return number, not string
 }
 
 /**
@@ -409,17 +455,52 @@ function sanitizeZip(raw) {
  */
 function sanitizeRecord(raw, source) {
   const src = source || raw.source || "";
-  const state = sanitizeState(raw.state);
+
+  // Pre-process: if the city field contains commas, it may have state/country embedded
+  // e.g. "Nassau, New Providence, Bahamas" or "Palm Coast, Florida"
+  let rawCity = cleanStr(raw.city);
+  let rawState = raw.state || "";
+  let rawCountry = raw.country || "";
+
+  if (rawCity && rawCity.includes(",")) {
+    const parts = rawCity.split(",").map((p) => p.trim()).filter(Boolean);
+    // Check if last part is a country name
+    const lastLower = (parts[parts.length - 1] || "").toLowerCase();
+    if (COUNTRY_CANONICAL[lastLower] && parts.length >= 2) {
+      rawCountry = parts.pop(); // country in city overrides existing
+      // If remaining parts > 1, check if the last is now a state
+      if (parts.length >= 2) {
+        const maybeSt = parts[parts.length - 1].toUpperCase();
+        if (VALID_US_ABBRS.has(maybeSt) || CA_PROVINCES.has(maybeSt) || STATE_FULL_TO_ABBR[parts[parts.length - 1].toLowerCase()]) {
+          if (!rawState) rawState = parts.pop();
+        }
+      }
+      rawCity = parts[0] || "";
+    } else {
+      // Check if the last comma part is a US state
+      const maybeSt = parts[parts.length - 1].toUpperCase();
+      const maybeStLower = parts[parts.length - 1].toLowerCase();
+      if (parts.length === 2 && (VALID_US_ABBRS.has(maybeSt) || STATE_FULL_TO_ABBR[maybeStLower])) {
+        rawCity = parts[0];
+        if (!rawState) rawState = parts[1];
+      } else {
+        // Just take the first part as the city
+        rawCity = parts[0];
+      }
+    }
+  }
+
+  const state = sanitizeState(rawState);
 
   return {
     name: sanitizeName(raw.name || raw.parish || ""),
     jurisdiction: normaliseJurisdiction(raw.jurisdiction, src),
     diocese: sanitizeDivision(raw.diocese),
     deanery: sanitizeDivision(raw.deanery),
-    city: cleanStr(raw.city),
+    city: cleanStr(rawCity),
     state,
     zip: sanitizeZip(raw.zip),
-    country: sanitizeCountry(raw.country, state),
+    country: sanitizeCountry(rawCountry, state),
     phone: sanitizePhone(raw.phone),
     website: sanitizeWebsite(raw.website || raw.detailUrl || "", src),
     lat: sanitizeLatLng(raw.lat, "lat"),

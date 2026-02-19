@@ -3,8 +3,8 @@
  *
  * Pipeline:
  *   1. Dynamic DBSCAN clustering  (per-diocese, auto epsilon)
- *   2. Tier 1 — Diocese-level Voronoi tessellation
- *   3. Tier 2 — Parish-level subdivision within each diocese
+ *   2. Tier 1 — Diocese concave hulls (buffered) — overlapping, canonical scope
+ *   3. Tier 2 — Global parish-level Voronoi (dominance — every pixel → one parish)
  *
  * Usage:
  *   node src/compute-map.js
@@ -14,12 +14,16 @@
 const { Delaunay } = require("d3-delaunay");
 const turf = require("@turf/turf");
 const { getDb, initSchema, resetComputed, closeDb } = require("./db");
+const { resolveCanonicalDiocese } = require("./diocese-lookup");
 
 // Bounding box for North America [west, south, east, north]
-const BOUNDS = [-170, 15, -50, 72];
+const BOUNDS = [-180, 15, -50, 72]; // Include full Alaska (Aleutians go past -170)
 const DBSCAN_MIN_PTS = 2;
 const FALLBACK_EPSILON_KM = 8;
 const EPSILON_PERCENTILE = 0.15;
+
+// Buffer distance (km) around concave hulls for diocese boundaries
+const DIOCESE_BUFFER_KM = 30;
 
 function haversineKm(lat1, lng1, lat2, lng2) {
   const R = 6371;
@@ -38,18 +42,14 @@ function dbscan(points, epsilonKm, minPts) {
   const labels = new Array(n).fill(-1);
   let clusterId = 0;
 
-  const dist = [];
-  for (let i = 0; i < n; i++) {
-    dist[i] = [];
-    for (let j = 0; j < n; j++) {
-      dist[i][j] = i === j ? 0 : haversineKm(points[i].lat, points[i].lng, points[j].lat, points[j].lng);
-    }
-  }
-
+  // Compute distances on-demand instead of storing O(n²) dense matrix
   function regionQuery(idx) {
     const neighbors = [];
     for (let j = 0; j < n; j++) {
-      if (dist[idx][j] <= epsilonKm) neighbors.push(j);
+      if (j === idx) { neighbors.push(j); continue; }
+      if (haversineKm(points[idx].lat, points[idx].lng, points[j].lat, points[j].lng) <= epsilonKm) {
+        neighbors.push(j);
+      }
     }
     return neighbors;
   }
@@ -125,12 +125,25 @@ function computeVoronoiPolygons(points, bounds) {
 }
 
 function safeUnion(polygons) {
-  if (polygons.length === 0) return null;
-  if (polygons.length === 1) return polygons[0];
-  let result = polygons[0];
-  for (let i = 1; i < polygons.length; i++) {
+  // Filter out invalid/degenerate polygons before attempting union
+  const valid = polygons.filter((p) => {
+    try { return turf.booleanValid ? turf.booleanValid(p) : true; } catch { return false; }
+  });
+  if (valid.length === 0) {
+    // Fall back to convex hull of original polygons if all are invalid
+    if (polygons.length > 0) {
+      try {
+        const fc = turf.featureCollection(polygons);
+        return turf.convex(fc) || polygons[0];
+      } catch { return polygons[0]; }
+    }
+    return null;
+  }
+  if (valid.length === 1) return valid[0];
+  let result = valid[0];
+  for (let i = 1; i < valid.length; i++) {
     try {
-      const u = turf.union(turf.featureCollection([result, polygons[i]]));
+      const u = turf.union(turf.featureCollection([result, valid[i]]));
       if (u) result = u;
     } catch { continue; }
   }
@@ -141,6 +154,52 @@ function safeIntersect(a, b) {
   try {
     return turf.intersect(turf.featureCollection([a, b]));
   } catch { return a; }
+}
+
+/**
+ * Build a concave hull around a set of points.
+ * Falls back to convex hull or buffered point for small sets.
+ */
+function buildDioceseHull(points, bufferKm) {
+  if (points.length === 0) return null;
+
+  const turfPoints = points.map(p => turf.point([p.lng, p.lat]));
+  const fc = turf.featureCollection(turfPoints);
+
+  if (points.length === 1) {
+    return turf.buffer(turfPoints[0], bufferKm, { units: "kilometers" });
+  }
+
+  if (points.length === 2) {
+    const line = turf.lineString(points.map(p => [p.lng, p.lat]));
+    return turf.buffer(line, bufferKm, { units: "kilometers" });
+  }
+
+  // Try concave hull first (maxEdge in km — controls tightness)
+  let hull = null;
+  try {
+    hull = turf.concave(fc, { maxEdge: 300, units: "kilometers" });
+  } catch { /* fall through */ }
+
+  if (!hull) {
+    try {
+      hull = turf.convex(fc);
+    } catch { /* fall through */ }
+  }
+
+  if (!hull) {
+    // Last resort: union of buffered points
+    const buffered = turfPoints.map(p => turf.buffer(p, bufferKm, { units: "kilometers" }));
+    return safeUnion(buffered);
+  }
+
+  // Buffer the hull outward to give it body
+  try {
+    const buffered = turf.buffer(hull, bufferKm, { units: "kilometers" });
+    return buffered || hull;
+  } catch {
+    return hull;
+  }
 }
 
 /**
@@ -179,14 +238,60 @@ function computeMap() {
     return;
   }
 
-  // Group by diocese
+  // Group by diocese (resolve canonical name)
   const dioceseMap = new Map();
   for (const p of parishes) {
-    const key = p.diocese || p.jurisdiction || "Unknown";
+    const key = resolveCanonicalDiocese(p.diocese, p.jurisdiction);
     if (!dioceseMap.has(key)) dioceseMap.set(key, []);
     dioceseMap.get(key).push(p);
   }
   console.log(`  ${dioceseMap.size} distinct dioceses/groups`);
+
+  // ── Redistribute catch-all jurisdiction groups ──
+  // When a group key equals the jurisdiction name but other specific diocese
+  // groups exist for that jurisdiction, assign orphan parishes to the nearest
+  // real diocese by geographic proximity instead of creating a huge
+  // jurisdiction-wide polygon.
+  const jurisdictionDioceses = new Map(); // jurisdiction → [dioceseKey, ...]
+  for (const [key, dParishes] of dioceseMap) {
+    const j = dParishes[0]?.jurisdiction || "";
+    if (!jurisdictionDioceses.has(j)) jurisdictionDioceses.set(j, []);
+    jurisdictionDioceses.get(j).push(key);
+  }
+
+  for (const [jurisdiction, dioceseKeys] of jurisdictionDioceses) {
+    // Only act when the jurisdiction name itself is a key AND other real dioceses exist
+    if (!dioceseMap.has(jurisdiction)) continue;
+    const realDioceses = dioceseKeys.filter(k => k !== jurisdiction);
+    if (realDioceses.length === 0) continue; // single-diocese jurisdiction, nothing to redistribute
+
+    const orphans = dioceseMap.get(jurisdiction);
+    console.log(`    Redistributing ${orphans.length} orphan parishes from catch-all "${jurisdiction}" to ${realDioceses.length} real dioceses`);
+
+    // Compute centroids of each real diocese group
+    const dioceseCentroids = realDioceses.map(dk => {
+      const pts = dioceseMap.get(dk);
+      const cLat = pts.reduce((s, p) => s + p.lat, 0) / pts.length;
+      const cLng = pts.reduce((s, p) => s + p.lng, 0) / pts.length;
+      return { key: dk, lat: cLat, lng: cLng };
+    });
+
+    // Assign each orphan parish to its nearest real diocese
+    for (const orphan of orphans) {
+      let bestKey = realDioceses[0];
+      let bestDist = Infinity;
+      for (const dc of dioceseCentroids) {
+        const d = haversineKm(orphan.lat, orphan.lng, dc.lat, dc.lng);
+        if (d < bestDist) { bestDist = d; bestKey = dc.key; }
+      }
+      dioceseMap.get(bestKey).push(orphan);
+    }
+
+    // Remove the catch-all group
+    dioceseMap.delete(jurisdiction);
+  }
+
+  console.log(`  ${dioceseMap.size} diocese groups after redistribution`);
 
   // ── STEP 1: DBSCAN clustering per diocese ──
   console.log("  Step 1: DBSCAN clustering…");
@@ -257,28 +362,8 @@ function computeMap() {
   clusterTransaction();
   console.log(`    ${totalClusters} clusters formed from nearby parishes`);
 
-  // ── STEP 2: Tier 1 — Diocese-level Voronoi ──
-  console.log("  Step 2: Diocese-level Voronoi (Tier 1)…");
-
-  const allReps = [];
-  const repDioceseIndex = [];
-
-  for (const [dioceseName, reps] of dioceseRepPoints) {
-    for (const rep of reps) {
-      allReps.push(rep);
-      repDioceseIndex.push(dioceseName);
-    }
-  }
-  console.log(`    ${allReps.length} representative points across all dioceses`);
-
-  const globalPolys = computeVoronoiPolygons(allReps, BOUNDS);
-
-  const dioceseCellMap = new Map();
-  for (let i = 0; i < allReps.length; i++) {
-    const diocese = repDioceseIndex[i];
-    if (!dioceseCellMap.has(diocese)) dioceseCellMap.set(diocese, []);
-    if (globalPolys[i]) dioceseCellMap.get(diocese).push(globalPolys[i]);
-  }
+  // ── STEP 2: Tier 1 — Diocese concave hulls (overlapping) ──
+  console.log("  Step 2: Diocese concave hulls (Tier 1 — overlapping)…");
 
   const insertPolygon = db.prepare(`
     INSERT INTO polygons (entity_type, entity_id, diocese, jurisdiction, geojson, tier)
@@ -288,76 +373,85 @@ function computeMap() {
   const diocesePolygons = new Map();
 
   const tier1Transaction = db.transaction(() => {
-    for (const [dioceseName, cells] of dioceseCellMap) {
-      const merged = safeUnion(cells);
-      if (!merged) continue;
-      diocesePolygons.set(dioceseName, merged);
+    for (const [dioceseName, dParishes] of dioceseMap) {
+      const points = dParishes.map(p => ({ lat: p.lat, lng: p.lng }));
+      const hull = buildDioceseHull(points, DIOCESE_BUFFER_KM);
+      if (!hull) continue;
 
-      const dParishes = dioceseMap.get(dioceseName) || [];
+      diocesePolygons.set(dioceseName, hull);
       const jurisdiction = dParishes[0]?.jurisdiction || "";
 
       insertPolygon.run({
         entity_type: "diocese", entity_id: dioceseName, diocese: dioceseName, jurisdiction,
-        geojson: JSON.stringify(merged.geometry), tier: 1,
+        geojson: JSON.stringify(hull.geometry), tier: 1,
       });
     }
   });
 
   tier1Transaction();
-  console.log(`    ${diocesePolygons.size} diocese polygons stored`);
+  console.log(`    ${diocesePolygons.size} diocese hull polygons stored`);
 
-  // ── STEP 3: Tier 2 — Parish-level subdivision ──
-  console.log("  Step 3: Parish-level subdivision (Tier 2)…");
+  // ── STEP 3: Tier 2 — Global parish-level Voronoi (dominance view) ──
+  console.log("  Step 3: Global parish-level Voronoi (Tier 2 — dominance)…");
+
+  // Collect all representative points across all dioceses for global Voronoi
+  const allReps = [];
+  const repMeta = []; // parallel array storing diocese/jurisdiction for each rep
+
+  for (const [dioceseName, reps] of dioceseRepPoints) {
+    const dParishes = dioceseMap.get(dioceseName) || [];
+    const jurisdiction = dParishes[0]?.jurisdiction || "";
+    for (const rep of reps) {
+      allReps.push(rep);
+      repMeta.push({ diocese: dioceseName, jurisdiction });
+    }
+  }
+
+  console.log(`    ${allReps.length} representative points for global Voronoi`);
+
+  const globalPolys = computeVoronoiPolygons(allReps, BOUNDS);
+
+  // Precompute parish-name lookups BEFORE entering the write transaction
+  const precomputedNames = new Map();
+  for (const [dioceseName, reps] of dioceseRepPoints) {
+    const repsWithNames = reps.map(rep => {
+      const parishInfos = getParishNamesForRep(db, rep);
+      return { ...rep, parishInfos };
+    });
+    precomputedNames.set(dioceseName, repsWithNames);
+  }
+
+  // Build a quick index from rep id → precomputed names
+  const repNameIndex = new Map();
+  for (const [, repsWithNames] of precomputedNames) {
+    for (const r of repsWithNames) {
+      repNameIndex.set(r.id, r.parishInfos);
+    }
+  }
 
   let tier2Count = 0;
 
   const tier2Transaction = db.transaction(() => {
-    for (const [dioceseName, reps] of dioceseRepPoints) {
-      if (reps.length === 0) continue;
-      const diocesePoly = diocesePolygons.get(dioceseName);
-      if (!diocesePoly) continue;
+    for (let i = 0; i < allReps.length; i++) {
+      if (!globalPolys[i]) continue;
+      const rep = allReps[i];
+      const meta = repMeta[i];
+      const parishInfos = repNameIndex.get(rep.id) || [];
+      const geometry = globalPolys[i].geometry || globalPolys[i];
 
-      const dParishes = dioceseMap.get(dioceseName) || [];
-      const jurisdiction = dParishes[0]?.jurisdiction || "";
-
-      // Look up parish names for each rep to embed in the polygon
-      const repsWithNames = reps.map(rep => {
-        const parishInfos = getParishNamesForRep(db, rep);
-        return { ...rep, parishInfos };
+      insertPolygon.run({
+        entity_type: "parish",
+        entity_id: rep.id,
+        diocese: meta.diocese,
+        jurisdiction: meta.jurisdiction,
+        geojson: JSON.stringify({
+          type: "Feature",
+          geometry,
+          properties: { parishNames: parishInfos },
+        }),
+        tier: 2,
       });
-
-      if (reps.length === 1) {
-        insertPolygon.run({
-          entity_type: "parish", entity_id: repsWithNames[0].id, diocese: dioceseName, jurisdiction,
-          geojson: JSON.stringify({
-            ...diocesePoly.geometry,
-            properties: { parishNames: repsWithNames[0].parishInfos }
-          }),
-          tier: 2,
-        });
-        tier2Count++;
-        continue;
-      }
-
-      const innerPolys = computeVoronoiPolygons(reps, BOUNDS);
-
-      for (let i = 0; i < reps.length; i++) {
-        if (!innerPolys[i]) continue;
-        const clipped = safeIntersect(innerPolys[i], diocesePoly);
-        if (!clipped) continue;
-
-        // Embed parish names into the geojson so the frontend can show them
-        const geom = clipped.geometry || clipped;
-        insertPolygon.run({
-          entity_type: "parish", entity_id: repsWithNames[i].id, diocese: dioceseName, jurisdiction,
-          geojson: JSON.stringify({
-            ...geom,
-            properties: { parishNames: repsWithNames[i].parishInfos }
-          }),
-          tier: 2,
-        });
-        tier2Count++;
-      }
+      tier2Count++;
     }
   });
 
@@ -370,7 +464,7 @@ function computeMap() {
   console.log(`\n  ✓ Computation complete:`);
   console.log(`    Parishes: ${parishes.length}`);
   console.log(`    Clusters: ${clusterCount}`);
-  console.log(`    Polygons: ${polyCount} (Tier 1 + Tier 2)`);
+  console.log(`    Polygons: ${polyCount} (Tier 1 hulls + Tier 2 Voronoi)`);
 
   closeDb();
   console.log("[compute] Done.\n");

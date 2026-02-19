@@ -5,6 +5,8 @@
   "main": "index.js",
   "scripts": {
     "scrape": "node index.js",
+    "scrape:all": "node scrape-all.js",
+    "scrape:all:retry": "node scrape-all.js --retry",
     "scrape:chicago": "node index.js --source chicago",
     "scrape:assembly": "node index.js --source assembly",
     "scrape:oca": "node index.js --source oca",
@@ -17,7 +19,12 @@
     "scrape:acrod": "node index.js --source acrod",
     "scrape:bulgarian": "node index.js --source bulgarian",
     "scrape:orthodox-world": "node index.js --source orthodox-world",
+    "import": "node src/import.js",
+    "import:fresh": "node src/import.js --fresh",
+    "migrate": "node src/backfill-patriarchate.js",
+    "rebuild": "node src/import.js --fresh",
     "serve": "node server.js",
+    "compute": "node src/compute-map.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -27,10 +34,13 @@
   "dependencies": {
     "@turf/turf": "^7.3.4",
     "axios": "^1.13.5",
+    "bcrypt": "^5.1.1",
     "better-sqlite3": "^12.6.2",
     "cheerio": "^1.2.0",
+    "cookie-parser": "^1.4.6",
     "csv-writer": "^1.6.0",
     "d3-delaunay": "^6.0.4",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "express-session": "^1.18.0"
   }
 }

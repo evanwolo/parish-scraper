@@ -21,8 +21,8 @@ const http = axios.create({
 async function fetchPage(url, retries = 3) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const { data } = await http.get(url);
-      return typeof data === "string" ? data : JSON.stringify(data);
+      const { data } = await http.get(url, { responseType: "text" });
+      return typeof data === "string" ? data : String(data);
     } catch (err) {
       console.error(
         `  [attempt ${attempt}/${retries}] Failed to fetch ${url}: ${err.message}`

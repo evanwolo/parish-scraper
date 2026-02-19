@@ -299,7 +299,10 @@
 
 <header>
   <h1>☦ <span>Orthodox</span> Parish Directory</h1>
-  <div class="header-stats" id="stats">Loading…</div>
+  <div style="display: flex; align-items: center; gap: 1rem;">
+    <div class="header-stats" id="stats">Loading…</div>
+    <a href="/auth.html" id="auth-link" style="color: var(--gold); text-decoration: none; font-size: 0.85rem; white-space: nowrap;">Login</a>
+  </div>
 </header>
 
 <div class="controls" style="position:sticky;top:0;z-index:10;">
@@ -649,9 +652,11 @@
 
   function esc(s) {
     if (!s) return "";
-    const d = document.createElement("div");
-    d.textContent = s;
-    return d.innerHTML;
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   }
 
   // ── CSV Export ──────────────────────────────
@@ -674,6 +679,23 @@
     a.click();
     URL.revokeObjectURL(url);
   });
+})();
+</script>
+
+<script>
+// Check authentication status and update link
+(async function() {
+  try {
+    const response = await fetch('/api/auth/me');
+    if (response.ok) {
+      const user = await response.json();
+      const authLink = document.getElementById('auth-link');
+      authLink.href = '/profile.html';
+      authLink.textContent = 'My Profile';
+    }
+  } catch (err) {
+    // Not logged in, keep default "Login" link
+  }
 })();
 </script>
 

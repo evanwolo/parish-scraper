@@ -62,7 +62,8 @@ function normaliseAPIRecord(raw, jurCode) {
 async function tryAPIForJur(jurCode) {
   for (const url of apiCandidates(jurCode)) {
     try {
-      const json = await fetchJSON(url);
+      // Use retries=1 for API probes to avoid 21s of wasted time per source
+      const json = await fetchJSON(url, 1);
       if (Array.isArray(json) && json.length > 0) {
         console.log(`[${SOURCE_NAME}] Got ${json.length} records from API (${jurCode}): ${url}`);
         return json.map((p) => normaliseAPIRecord(p, jurCode));
@@ -92,6 +93,9 @@ async function scrapeHTMLForJur(jurCode) {
   const defaultJur = JURISDICTION_CODES[jurCode] || jurCode;
 
   // ── Primary strategy: div.output_parish blocks ──
+  // NOTE: The Assembly site may render results via JavaScript. If 0 records
+  // come back from this selector, it's likely a JS-rendered page issue.
+  // Consider probing the site's XHR/API endpoints as a future improvement.
   $("div.output_parish").each((_i, el) => {
     const name = clean($(el).find(".parish_title").text());
     if (!name) return;

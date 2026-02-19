@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Orthodox Parish Directory</title>
+  <style>
+    :root {
+      --gold: #c5a344;
+      --gold-light: #f5ecd0;
+      --navy: #1a2332;
+      --navy-light: #253346;
+      --white: #fafafa;
+      --text: #222;
+      --text-muted: #666;
+      --border: #ddd;
+      --radius: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .auth-container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .logo h1 {
+      color: var(--navy);
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .logo h1 span {
+      color: var(--gold);
+    }
+
+    .logo p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      background: none;
+      border: none;
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.3s;
+    }
+
+    .tab:hover {
+      color: var(--navy);
+    }
+
+    .tab.active {
+      color: var(--navy);
+      border-bottom-color: var(--gold);
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.4rem;
+      font-weight: 500;
+      color: var(--navy);
+      font-size: 0.9rem;
+    }
+
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 1rem;
+      transition: border-color 0.3s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--gold);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 0.85rem;
+      background: var(--gold);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn:hover {
+      background: #b39338;
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn:disabled {
+      background: var(--border);
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .error-message {
+      background: #fee;
+      color: #c33;
+      padding: 0.75rem;
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    .error-message.visible {
+      display: block;
+    }
+
+    .success-message {
+      background: #efe;
+      color: #3a3;
+      padding: 0.75rem;
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    .success-message.visible {
+      display: block;
+    }
+
+    .form-panel {
+      display: none;
+    }
+
+    .form-panel.active {
+      display: block;
+    }
+
+    .back-link {
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+
+    .back-link a {
+      color: var(--gold);
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    .back-link a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-container">
+    <div class="logo">
+      <h1><span>✝</span> Orthodox Parish Directory</h1>
+      <p>Login or create an account</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('login')">Login</button>
+      <button class="tab" onclick="switchTab('register')">Register</button>
+    </div>
+
+    <div id="error" class="error-message"></div>
+    <div id="success" class="success-message"></div>
+
+    <!-- Login Form -->
+    <div id="login-panel" class="form-panel active">
+      <form id="login-form" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn">Login</button>
+      </form>
+    </div>
+
+    <!-- Register Form -->
+    <div id="register-panel" class="form-panel">
+      <form id="register-form" onsubmit="handleRegister(event)">
+        <div class="form-group">
+          <label for="register-email">Email</label>
+          <input type="email" id="register-email" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="register-password">Password</label>
+          <input type="password" id="register-password" required minlength="6" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label for="register-password-confirm">Confirm Password</label>
+          <input type="password" id="register-password-confirm" required minlength="6" autocomplete="new-password">
+        </div>
+        <button type="submit" class="btn">Create Account</button>
+      </form>
+    </div>
+
+    <div class="back-link">
+      <a href="/">← Back to Parish Directory</a>
+    </div>
+  </div>
+
+  <script>
+    function switchTab(tab) {
+      // Switch tab buttons
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+
+      // Switch panels
+      document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(`${tab}-panel`).classList.add('active');
+
+      // Clear messages
+      hideError();
+      hideSuccess();
+    }
+
+    function showError(message) {
+      const el = document.getElementById('error');
+      el.textContent = message;
+      el.classList.add('visible');
+    }
+
+    function hideError() {
+      document.getElementById('error').classList.remove('visible');
+    }
+
+    function showSuccess(message) {
+      const el = document.getElementById('success');
+      el.textContent = message;
+      el.classList.add('visible');
+    }
+
+    function hideSuccess() {
+      document.getElementById('success').classList.remove('visible');
+    }
+
+    async function handleLogin(event) {
+      event.preventDefault();
+      hideError();
+      hideSuccess();
+
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          showError(data.error || 'Login failed');
+          return;
+        }
+
+        showSuccess('Login successful! Redirecting...');
+        setTimeout(() => {
+          window.location.href = '/profile.html';
+        }, 1000);
+      } catch (err) {
+        showError('Network error. Please try again.');
+      }
+    }
+
+    async function handleRegister(event) {
+      event.preventDefault();
+      hideError();
+      hideSuccess();
+
+      const email = document.getElementById('register-email').value;
+      const password = document.getElementById('register-password').value;
+      const confirmPassword = document.getElementById('register-password-confirm').value;
+
+      if (password !== confirmPassword) {
+        showError('Passwords do not match');
+        return;
+      }
+
+      if (password.length < 6) {
+        showError('Password must be at least 6 characters');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          showError(data.error || 'Registration failed');
+          return;
+        }
+
+        showSuccess('Account created! Redirecting...');
+        setTimeout(() => {
+          window.location.href = '/profile.html';
+        }, 1000);
+      } catch (err) {
+        showError('Network error. Please try again.');
+      }
+    }
+
+    // Check if already logged in
+    (async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (response.ok) {
+          window.location.href = '/profile.html';
+        }
+      } catch (err) {
+        // Not logged in, stay on this page
+      }
+    })();
+  </script>
+</body>
+</html>

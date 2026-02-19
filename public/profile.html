@@ -1,0 +1,1584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile - Orthodox Parish Directory</title>
+  <style>
+    :root {
+      --gold: #c5a344;
+      --gold-light: #f5ecd0;
+      --navy: #1a2332;
+      --navy-light: #253346;
+      --white: #fafafa;
+      --text: #222;
+      --text-muted: #666;
+      --border: #ddd;
+      --radius: 6px;
+      --success: #4caf50;
+      --error: #f44336;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+      background: var(--white);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    /* ── Header ─────────────────────────────── */
+    header {
+      background: var(--navy);
+      color: #fff;
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    header h1 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    header h1 span { color: var(--gold); }
+
+    .header-actions {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .user-email {
+      color: #aab;
+      font-size: 0.85rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.5rem 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.85rem;
+      background: #fff;
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .btn:hover { background: var(--gold-light); border-color: var(--gold); }
+
+    .btn-primary {
+      background: var(--gold);
+      color: white;
+      border-color: var(--gold);
+    }
+
+    .btn-primary:hover {
+      background: #b39338;
+      border-color: #b39338;
+    }
+
+    .btn-logout {
+      background: transparent;
+      color: white;
+      border-color: rgba(255,255,255,0.3);
+    }
+
+    .btn-logout:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.5);
+    }
+
+    .btn-small {
+      padding: 0.3rem 0.6rem;
+      font-size: 0.75rem;
+    }
+
+    .btn-danger {
+      background: #fee;
+      color: #c33;
+      border-color: #fcc;
+    }
+
+    .btn-danger:hover {
+      background: #fcc;
+      border-color: #c33;
+    }
+
+    .btn-success {
+      background: #efe;
+      color: #3a3;
+      border-color: #cfc;
+    }
+
+    .btn-success:hover {
+      background: #cfc;
+      border-color: #3a3;
+    }
+
+    /* ── Main content ───────────────────────── */
+    .container {
+      max-width: 1400px;
+      margin: 2rem auto;
+      padding: 0 2rem;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 1rem;
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 2rem;
+      overflow-x: auto;
+    }
+
+    .tab-button {
+      padding: 0.75rem 1.25rem;
+      border: none;
+      background: none;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-weight: 500;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+    }
+
+    .tab-button:hover {
+      color: var(--gold);
+    }
+
+    .tab-button.active {
+      color: var(--navy);
+      border-color: var(--gold);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 2rem;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.75rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--navy);
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.4rem;
+      font-weight: 500;
+      color: var(--navy);
+      font-size: 0.9rem;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="date"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 0.65rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+      font-family: inherit;
+      resize: vertical;
+    }
+
+    textarea {
+      min-height: 100px;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--gold);
+      box-shadow: 0 0 0 2px rgba(197, 163, 68, 0.1);
+    }
+
+    .radio-group {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .radio-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .radio-item input[type="radio"] {
+      width: auto;
+    }
+
+    .info-text {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      margin-top: 0.3rem;
+    }
+
+    .alert {
+      padding: 0.75rem;
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+    }
+
+    .alert-success {
+      background: #efe;
+      color: #3a3;
+    }
+
+    .alert-error {
+      background: #fee;
+      color: #c33;
+    }
+
+    .alert-info {
+      background: #eef;
+      color: #339;
+    }
+
+    .list-item {
+      padding: 1rem;
+      background: #f9f9f9;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 1rem;
+    }
+
+    .list-item.completed {
+      opacity: 0.7;
+      text-decoration: line-through;
+    }
+
+    .list-item-info h4 {
+      font-size: 0.95rem;
+      margin-bottom: 0.25rem;
+      color: var(--navy);
+    }
+
+    .list-item-info p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0.15rem;
+    }
+
+    .list-item-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: nowrap;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 2rem 1rem;
+      font-size: 0.95rem;
+    }
+
+    .parish-search {
+      position: relative;
+      margin-bottom: 1rem;
+    }
+
+    .search-results {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      max-height: 250px;
+      overflow-y: auto;
+      z-index: 200;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      display: none;
+    }
+
+    .search-results.visible {
+      display: block;
+    }
+
+    .search-result-item {
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .search-result-item:last-child {
+      border-bottom: none;
+    }
+
+    .search-result-item:hover {
+      background: var(--gold-light);
+    }
+
+    .search-result-item strong {
+      display: block;
+      color: var(--navy);
+      margin-bottom: 0.1rem;
+    }
+
+    .search-result-item small {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .hidden { display: none; }
+
+    .prayer-focus-item {
+      background: #f0f4f8;
+      padding: 1rem;
+      border-left: 4px solid var(--gold);
+      border-radius: 4px;
+      margin-bottom: 0.75rem;
+    }
+
+    .journal-entry {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .journal-entry-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 0.5rem;
+    }
+
+    .journal-entry-title {
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--navy);
+    }
+
+    .journal-entry-date {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .journal-entry-content {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: var(--text);
+      margin: 0.75rem 0;
+    }
+
+    .saved-parishes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .parish-card {
+      background: #f9f9f9;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      position: relative;
+    }
+
+    .parish-card h4 {
+      color: var(--navy);
+      margin-bottom: 0.5rem;
+    }
+
+    .parish-card p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0.3rem;
+    }
+
+    .remove-save-btn {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.2rem;
+      color: var(--text-muted);
+    }
+
+    .remove-save-btn:hover {
+      color: var(--error);
+    }
+
+    .preference-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .preference-row:last-child {
+      border-bottom: none;
+    }
+
+    .checkbox {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><span>✝</span> Orthodox Parish Directory</h1>
+    <div class="header-actions">
+      <span class="user-email" id="user-email"></span>
+      <a href="/" class="btn">← Directory</a>
+      <button onclick="logout()" class="btn btn-logout">Logout</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div id="message-container"></div>
+
+    <!-- Affiliation Banner -->
+    <div id="affiliation-banner" style="display: none; margin-bottom: 2rem; padding: 1.5rem; background: linear-gradient(135deg, rgba(197, 163, 68, 0.1) 0%, rgba(197, 163, 68, 0.05) 100%); border: 2px solid var(--gold); border-radius: 10px; text-align: center;">
+      <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.25rem;">Your Church Affiliation</p>
+      <h2 id="affiliation-display" style="color: var(--gold); margin: 0; font-size: 1.5rem;"></h2>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-button active" onclick="switchTab('about')">👤 About Me</button>
+      <button class="tab-button" onclick="switchTab('spirituality')">⛪ Spiritual Life</button>
+      <button class="tab-button" onclick="switchTab('parishes')">🏛️ My Parishes</button>
+      <button class="tab-button" onclick="switchTab('journal')">📖 Journal</button>
+      <button class="tab-button" onclick="switchTab('settings')">⚙️ Settings</button>
+    </div>
+
+    <!-- 👤 ABOUT ME TAB -->
+    <div id="about" class="tab-content active">
+      <!-- Profile Summary -->
+      <div class="card" style="margin-bottom: 2rem; background: linear-gradient(135deg, #f0f4f8 0%, #f8fbfc 100%); border: 1px solid rgba(197, 163, 68, 0.2);">
+        <h3 class="card-title">📋 Profile Summary</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+          <div>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.25rem;">Status</p>
+            <p style="font-weight: 600; color: var(--navy);" id="summary-status">Not yet set</p>
+          </div>
+          <div>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.25rem;">Affiliation</p>
+            <p style="font-weight: 600; color: var(--gold);" id="summary-affiliation">Not yet set</p>
+          </div>
+          <div>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.25rem;">Home Parish</p>
+            <p style="font-weight: 600; color: var(--navy);" id="summary-current">Not yet set</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h3 class="card-title">📍 Basic Information</h3>
+          <form id="basic-form" onsubmit="saveBasicInfo(event)">
+            <div class="form-group">
+              <label for="home_address">Home Address</label>
+              <input type="text" id="home_address" placeholder="123 Main St, City, State ZIP">
+              <p class="info-text">Used to find your closest parish</p>
+            </div>
+
+            <div class="form-group">
+              <label for="church_status">Status in the Church</label>
+              <select id="church_status">
+                <option value="">Select status...</option>
+                <option value="inquirer">Inquirer (Seeking the Orthodox Faith)</option>
+                <option value="catechumen">Catechumen</option>
+                <option value="baptized">Baptized Orthodox</option>
+                <option value="chrismated">Chrismated</option>
+                <option value="clergy">Clergy</option>
+              </select>
+            </div>
+
+          <div class="form-group">
+            <label for="church_affiliation">Church Affiliation / Jurisdiction</label>
+            <select id="church_affiliation">
+              <option value="">Select jurisdiction...</option>
+              <option value="antiochian">Antiochian Orthodox Christian Archdiocese</option>
+              <option value="oca">Orthodox Church in America (OCA)</option>
+              <option value="greek">Greek Orthodox Archdiocese (Ecumenical Patriarchate)</option>
+              <option value="serbian">Serbian Orthodox Church</option>
+              <option value="romanian">Romanian Orthodox Church</option>
+              <option value="bulgarian">Bulgarian Orthodox Church</option>
+              <option value="moscow">Russian Orthodox Church (Moscow Patriarchate)</option>
+              <option value="ukrainian">Ukrainian Orthodox Church</option>
+              <option value="uoc-usa">Ukrainian Orthodox Church of the USA</option>
+              <option value="acrod">American Carpatho-Russian Orthodox Diocese</option>
+              <option value="assembly">Assembly of Bishops of Orthodox Churches in the USA</option>
+              <option value="catholic-eastern">Eastern Catholic</option>
+              <option value="other">Other / Undecided</option>
+            </select>
+          </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="current_parish">Current Parish</label>
+              <div class="parish-search">
+                <input type="text" id="current_parish_search" placeholder="Search by name...">
+                <input type="hidden" id="current_parish_id">
+                <div id="current_search_results" class="search-results"></div>
+              </div>
+              <div id="current_parish_display" class="hidden" style="margin-top: 0.5rem; padding: 0.5rem; background: var(--gold-light); border-radius: 4px; font-size: 0.85rem;">
+                <strong id="current_parish_name"></strong>
+                <button type="button" onclick="clearCurrentParish()" style="float: right; background: none; border: none; cursor: pointer; color: var(--text-muted);">✕</button>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Save Information</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">🏛️ Closest Parish</h3>
+          <div id="closest-parish-container">
+            <p class="empty-state">Add your home address to discover your closest parish</p>
+          </div>
+          <button onclick="refreshClosestParish()" class="btn" style="width: 100%; margin-top: 1rem;">Refresh</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 2rem;">
+        <h3 class="card-title">✍️ About You</h3>
+        <form id="bio-form" onsubmit="saveBio(event)">
+          <div class="form-group">
+            <label for="bio">Personal Bio</label>
+            <textarea id="bio" placeholder="Tell others about yourself, your interests in the Orthodox faith..."></textarea>
+            <p class="info-text">Share as much or as little as you'd like</p>
+          </div>
+
+          <div class="form-group">
+            <label for="spiritual_journey">Your Spiritual Journey</label>
+            <textarea id="spiritual_journey" placeholder="How did you come to the Orthodox faith? What has your journey been like?"></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%;">Save Bio</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ⛪ SPIRITUAL LIFE TAB -->
+    <div id="spirituality" class="tab-content">
+      <div class="grid">
+        <div class="card">
+          <h3 class="card-title">✝️ Favorite Saints</h3>
+          <form id="saints-form" onsubmit="saveSaints(event)">
+            <div class="form-group">
+              <label for="favorite_saints">Saints You Venerate</label>
+              <textarea id="favorite_saints" placeholder="St. John Chrysostom, St. Mary Magdalene, etc."></textarea>
+              <p class="info-text">List your patron saints or those you have a special devotion to</p>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Save Saints</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">🙏 Prayer Focus</h3>
+          <form id="prayer-form" onsubmit="savePrayerFocus(event)">
+            <div class="form-group">
+              <label for="prayer_focus">What is your current prayer focus?</label>
+              <textarea id="prayer_focus" placeholder="Are you working on a particular prayer practice or intention?"></textarea>
+              <p class="info-text">Share your spiritual focus for prayer and intercession</p>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Save Prayer Focus</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 2rem;">
+        <h3 class="card-title">🎯 Spiritual Goals</h3>
+        
+        <form id="goal-form" onsubmit="addGoal(event)" style="margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid var(--border);">
+          <div class="form-group">
+            <label for="goal_text">Add a New Goal</label>
+            <input type="text" id="goal_text" placeholder="e.g., Read the entire New Testament, Attend liturgy weekly...">
+          </div>
+
+          <div class="form-group">
+            <label for="goal_category">Category</label>
+            <select id="goal_category">
+              <option value="prayer">Prayer Practice</option>
+              <option value="reading">Scripture/Theological Reading</option>
+              <option value="worship">Worship & Liturgy</option>
+              <option value="service">Service & Charity</option>
+              <option value="family">Family & Relationships</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%;">Add Goal</button>
+        </form>
+
+        <div id="goals-container">
+          <p class="loading">Loading goals...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🏛️ MY PARISHES TAB -->
+    <div id="parishes" class="tab-content">
+      <div class="card" style="margin-bottom: 2rem;">
+        <h3 class="card-title">💾 Saved Parishes (Favorites)</h3>
+        
+        <div class="form-group" style="margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid var(--border);">
+          <label for="save_parish_search">Find a Parish to Save</label>
+          <div class="parish-search">
+            <input type="text" id="save_parish_search" placeholder="Search for parish...">
+            <div id="save_search_results" class="search-results"></div>
+          </div>
+        </div>
+
+        <div id="saved-parishes-container">
+          <p class="empty-state">You haven't saved any parishes yet. Search above to add one!</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">⛪ Parishes I've Visited</h3>
+        
+        <div class="form-group" style="margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid var(--border);">
+          <label for="visit_parish_search">Add a Visit</label>
+          <div class="parish-search">
+            <input type="text" id="visit_parish_search" placeholder="Search for parish...">
+            <div id="visit_search_results" class="search-results"></div>
+          </div>
+        </div>
+
+        <div id="visits-container">
+          <p class="loading">Loading...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 📖 JOURNAL TAB -->
+    <div id="journal" class="tab-content">
+      <div class="card" style="margin-bottom: 2rem;">
+        <h3 class="card-title">✍️ New Journal Entry</h3>
+        
+        <form id="journal-form" onsubmit="addJournalEntry(event)">
+          <div class="form-group">
+            <label for="entry_title">Title</label>
+            <input type="text" id="entry_title" placeholder="e.g., Thoughts on Today's Liturgy...">
+          </div>
+
+          <div class="form-group">
+            <label for="entry_date">Date</label>
+            <input type="date" id="entry_date">
+          </div>
+
+          <div class="form-group">
+            <label for="entry_parish">Associated Parish (optional)</label>
+            <div class="parish-search">
+              <input type="text" id="entry_parish_search" placeholder="Search...">
+              <input type="hidden" id="entry_parish_id">
+              <div id="entry_search_results" class="search-results"></div>
+            </div>
+            <div id="entry_parish_display" class="hidden" style="margin-top: 0.5rem; padding: 0.5rem; background: var(--gold-light); border-radius: 4px; font-size: 0.85rem;">
+              <strong id="entry_parish_name"></strong>
+              <button type="button" onclick="clearEntryParish()" style="float: right; background: none; border: none; cursor: pointer; color: var(--text-muted);">✕</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="entry_content">Your Entry</label>
+            <textarea id="entry_content" placeholder="Write your thoughts, reflections, prayers..."></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%;">Save Entry</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">📚 Your Entries</h3>
+        <div id="entries-container">
+          <p class="loading">Loading entries...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⚙️ SETTINGS TAB -->
+    <div id="settings" class="tab-content">
+      <div class="card">
+        <h3 class="card-title">🎨 Theme & Appearance</h3>
+        <form id="theme-form" onsubmit="saveTheme(event)">
+          <div class="form-group">
+            <label>Color Theme</label>
+            <div class="radio-group">
+              <div class="radio-item">
+                <input type="radio" name="theme" value="light" id="theme_light">
+                <label for="theme_light">Light</label>
+              </div>
+              <div class="radio-item">
+                <input type="radio" name="theme" value="dark" id="theme_dark" disabled>
+                <label for="theme_dark">Dark (Coming soon)</label>
+              </div>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">Save Theme</button>
+        </form>
+      </div>
+
+      <div class="card" style="margin-top: 2rem;">
+        <h3 class="card-title">🔒 Privacy Settings</h3>
+        <form id="privacy-form" onsubmit="savePrivacy(event)">
+          <div class="preference-row">
+            <label for="is_profile_public">Make My Profile Public</label>
+            <input type="checkbox" id="is_profile_public" class="checkbox">
+          </div>
+
+          <div class="preference-row">
+            <label for="show_visited_parishes">Show Visited Parishes</label>
+            <input type="checkbox" id="show_visited_parishes" class="checkbox" checked>
+          </div>
+
+          <div class="preference-row">
+            <label for="show_prayer_intentions">Show Prayer Intentions</label>
+            <input type="checkbox" id="show_prayer_intentions" class="checkbox">
+          </div>
+
+          <p class="info-text" style="margin-top: 1rem;">These settings control what information is visible to other users who view your profile</p>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Save Privacy Settings</button>
+        </form>
+      </div>
+
+      <div class="card" style="margin-top: 2rem;">
+        <h3 class="card-title">Account</h3>
+        <p style="margin-bottom: 1rem;">Email: <strong id="account-email"></strong></p>
+        <button onclick="logout()" class="btn btn-danger">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let user = null;
+    let allParishes = [];
+    let currentProfile = null;
+    let currentPreferences = null;
+
+    // Initialize
+    (async () => {
+      await checkAuth();
+      await loadParishes();
+      await loadProfile();
+      await loadPreferences();
+      setupParishSearch();
+      setTodayDate();
+      
+      // Update banner when affiliation changes
+      document.getElementById('church_affiliation').addEventListener('change', updateAffiliationBanner);
+      document.getElementById('church_status').addEventListener('change', updateProfileSummary);
+    })();
+
+    function switchTab(tabName) {
+      // Hide all tabs
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      // Show selected tab
+      document.getElementById(tabName).classList.add('active');
+
+      // Update button states
+      document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+
+      // Load tab-specific data
+      if (tabName === 'spirituality') {
+        loadGoals();
+      } else if (tabName === 'parishes') {
+        loadSavedParishes();
+        loadVisits();
+      } else if (tabName === 'journal') {
+        loadJournal();
+      }
+    }
+
+    async function checkAuth() {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (!response.ok) {
+          window.location.href = '/auth.html';
+          return;
+        }
+        user = await response.json();
+        document.getElementById('user-email').textContent = user.email;
+        document.getElementById('account-email').textContent = user.email;
+      } catch (err) {
+        window.location.href = '/auth.html';
+      }
+    }
+
+    async function loadParishes() {
+      try {
+        const response = await fetch('/api/parishes');
+        allParishes = await response.json();
+      } catch (err) {
+        showMessage('Failed to load parishes', 'error');
+      }
+    }
+
+    async function loadProfile() {
+      try {
+        const response = await fetch('/api/user/profile');
+        if (!response.ok) throw new Error('Profile not found - creating new profile');
+        
+        currentProfile = await response.json();
+        
+        // Populate form
+        document.getElementById('home_address').value = currentProfile.home_address || '';
+        document.getElementById('church_status').value = currentProfile.church_status || '';
+        document.getElementById('church_affiliation').value = currentProfile.church_affiliation || '';
+        
+        // Update affiliation banner
+        updateAffiliationBanner();
+        updateProfileSummary();
+        
+        // Show baptismal parish if set
+        if (currentProfile.baptismal_parish_id) {
+          document.getElementById('baptismal_parish_id').value = currentProfile.baptismal_parish_id;
+          document.getElementById('baptismal_parish_name').textContent = 
+            `${currentProfile.baptismal_parish_name} - ${currentProfile.baptismal_parish_city}, ${currentProfile.baptismal_parish_state}`;
+          document.getElementById('baptismal_parish_display').classList.remove('hidden');
+          document.getElementById('baptismal_parish_search').value = '';
+        }
+        
+        // Show current parish if set
+        if (currentProfile.current_parish_id) {
+          document.getElementById('current_parish_id').value = currentProfile.current_parish_id;
+          document.getElementById('current_parish_name').textContent = 
+            `${currentProfile.current_parish_name} - ${currentProfile.current_parish_city}, ${currentProfile.current_parish_state}`;
+          document.getElementById('current_parish_display').classList.remove('hidden');
+          document.getElementById('current_parish_search').value = '';
+        }
+
+        // Load closest parish if home address is set
+        if (currentProfile.home_lat && currentProfile.home_lng) {
+          loadClosestParish();
+        }
+      } catch (err) {
+        console.log('Profile not yet created - will be created on first save');
+      }
+    }
+
+    function updateAffiliationBanner() {
+      const banner = document.getElementById('affiliation-banner');
+      const select = document.getElementById('church_affiliation');
+      const selectedValue = select.value;
+      
+      if (selectedValue) {
+        const selectedText = select.options[select.selectedIndex].text;
+        document.getElementById('affiliation-display').textContent = selectedText;
+        banner.style.display = 'block';
+      } else {
+        banner.style.display = 'none';
+      }
+      
+      updateProfileSummary();
+    }
+
+    function updateProfileSummary() {
+      const statusSelect = document.getElementById('church_status');
+      const affiliationSelect = document.getElementById('church_affiliation');
+      const currentParishName = document.getElementById('current_parish_name');
+      
+      // Status
+      const statusValue = statusSelect.value;
+      const statusText = statusSelect.options[statusSelect.selectedIndex]?.text || 'Not yet set';
+      document.getElementById('summary-status').textContent = statusValue ? statusText : 'Not yet set';
+      
+      // Affiliation
+      const affValue = affiliationSelect.value;
+      const affText = affiliationSelect.options[affiliationSelect.selectedIndex]?.text || 'Not yet set';
+      document.getElementById('summary-affiliation').textContent = affValue ? affText : 'Not yet set';
+      document.getElementById('summary-affiliation').style.color = affValue ? 'var(--gold)' : 'var(--text-muted)';
+      
+      // Current Parish
+      const parishText = currentParishName?.textContent || 'Not yet set';
+      document.getElementById('summary-current').textContent = parishText;
+      document.getElementById('summary-current').style.color = parishText !== 'Not yet set' ? 'var(--navy)' : 'var(--text-muted)';
+    }
+
+    async function loadPreferences() {
+      try {
+        const response = await fetch('/api/user/preferences');
+        if (!response.ok) throw new Error('Preferences not found');
+        
+        currentPreferences = await response.json();
+        
+        document.getElementById('bio').value = currentPreferences.bio || '';
+        document.getElementById('spiritual_journey').value = currentPreferences.spiritual_journey || '';
+        document.getElementById('favorite_saints').value = currentPreferences.favorite_saints || '';
+        document.getElementById('prayer_focus').value = currentPreferences.prayer_focus || '';
+        document.querySelector(`input[name="theme"][value="${currentPreferences.theme || 'light'}"]`).checked = true;
+        document.getElementById('is_profile_public').checked = currentPreferences.is_profile_public;
+        document.getElementById('show_visited_parishes').checked = currentPreferences.show_visited_parishes !== false;
+        document.getElementById('show_prayer_intentions').checked = currentPreferences.show_prayer_intentions;
+      } catch (err) {
+        console.log('Preferences not yet created');
+      }
+    }
+
+    async function saveBasicInfo(event) {
+      event.preventDefault();
+      
+      const data = {
+        home_address: document.getElementById('home_address').value,
+        church_status: document.getElementById('church_status').value,
+        church_affiliation: document.getElementById('church_affiliation').value,
+        baptismal_parish_id: document.getElementById('baptismal_parish_id').value ? parseInt(document.getElementById('baptismal_parish_id').value) : null,
+        current_parish_id: document.getElementById('current_parish_id').value ? parseInt(document.getElementById('current_parish_id').value) : null,
+      };
+
+      if (data.home_address && data.home_address !== (currentProfile?.home_address || '')) {
+        showMessage('Geocoding address...', 'info');
+        const coords = await geocodeAddress(data.home_address);
+        if (coords) {
+          data.home_lat = coords.lat;
+          data.home_lng = coords.lng;
+        } else {
+          showMessage('Warning: Address could not be geocoded.', 'info');
+        }
+      } else if (currentProfile?.home_lat) {
+        data.home_lat = currentProfile.home_lat;
+        data.home_lng = currentProfile.home_lng;
+      }
+
+      try {
+        const response = await fetch('/api/user/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+
+        if (!response.ok) throw new Error('Failed to save');
+        showMessage('Information saved!', 'success');
+        await loadProfile();
+        // Reload closest parish with new affiliation filter
+        if (currentProfile?.home_lat && currentProfile?.home_lng) {
+          await loadClosestParish();
+        }
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    async function saveBio(event) {
+      event.preventDefault();
+      const data = {
+        bio: document.getElementById('bio').value,
+        spiritual_journey: document.getElementById('spiritual_journey').value,
+      };
+
+      try {
+        const response = await fetch('/api/user/preferences', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+
+        if (!response.ok) throw new Error('Failed to save');
+        showMessage('Bio saved!', 'success');
+        await loadPreferences();
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    async function saveSaints(event) {
+      event.preventDefault();
+      const data = { favorite_saints: document.getElementById('favorite_saints').value };
+
+      try {
+        const response = await fetch('/api/user/preferences', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+
+        if (!response.ok) throw new Error('Failed to save');
+        showMessage('Favorite saints saved!', 'success');
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    async function savePrayerFocus(event) {
+      event.preventDefault();
+      const data = { prayer_focus: document.getElementById('prayer_focus').value };
+
+      try {
+        const response = await fetch('/api/user/preferences', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+
+        if (!response.ok) throw new Error('Failed to save');
+        showMessage('Prayer focus saved!', 'success');
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    async function saveTheme(event) {
+      event.preventDefault();
+      const data = { theme: document.querySelector('input[name="theme"]:checked').value };
+
+      try {
+        const response = await fetch('/api/user/preferences', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+
+        if (!response.ok) throw new Error('Failed to save');
+        showMessage('Theme saved!', 'success');
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    async function savePrivacy(event) {
+      event.preventDefault();
+      const data = {
+        is_profile_public: document.getElementById('is_profile_public').checked,
+        show_visited_parishes: document.getElementById('show_visited_parishes').checked,
+        show_prayer_intentions: document.getElementById('show_prayer_intentions').checked,
+      };
+
+      try {
+        const response = await fetch('/api/user/preferences', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+
+        if (!response.ok) throw new Error('Failed to save');
+        showMessage('Privacy settings saved!', 'success');
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    async function addGoal(event) {
+      event.preventDefault();
+      const text = document.getElementById('goal_text').value;
+      const category = document.getElementById('goal_category').value;
+
+      if (!text) return;
+
+      try {
+        const response = await fetch('/api/user/spiritual-goals', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ goal_text: text, category }),
+        });
+
+        if (!response.ok) throw new Error('Failed to add goal');
+        showMessage('Goal added!', 'success');
+        document.getElementById('goal_text').value = '';
+        await loadGoals();
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    async function loadGoals() {
+      try {
+        const response = await fetch('/api/user/spiritual-goals');
+        if (!response.ok) throw new Error('Failed to load goals');
+        
+        const goals = await response.json();
+        const container = document.getElementById('goals-container');
+
+        if (goals.length === 0) {
+          container.innerHTML = '<p class="empty-state">No spiritual goals yet. Add one above!</p>';
+          return;
+        }
+
+        container.innerHTML = goals.map(g => `
+          <div class="list-item ${g.is_completed ? 'completed' : ''}">
+            <div class="list-item-info">
+              <h4>${g.goal_text}</h4>
+              <p>${g.category.charAt(0).toUpperCase() + g.category.slice(1)}</p>
+              <p style="font-size: 0.8rem; margin-top: 0.3rem;">${new Date(g.created_at).toLocaleDateString()}</p>
+            </div>
+            <div class="list-item-actions">
+              <button class="btn btn-small ${g.is_completed ? 'btn-success' : ''}" onclick="toggleGoal(${g.id}, ${!g.is_completed})">
+                ${g.is_completed ? '✓ Done' : 'Mark Done'}
+              </button>
+              <button class="btn btn-small btn-danger" onclick="deleteGoal(${g.id})">Delete</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        document.getElementById('goals-container').innerHTML = '<p class="empty-state">Failed to load goals</p>';
+      }
+    }
+
+    async function toggleGoal(id, completed) {
+      try {
+        const response = await fetch(`/api/user/spiritual-goals/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ is_completed: completed }),
+        });
+
+        if (!response.ok) throw new Error('Failed to update goal');
+        await loadGoals();
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    async function deleteGoal(id) {
+      if (!confirm('Delete this goal?')) return;
+
+      try {
+        const response = await fetch(`/api/user/spiritual-goals/${id}`, { method: 'DELETE' });
+        if (!response.ok) throw new Error('Failed to delete goal');
+        showMessage('Goal deleted', 'success');
+        await loadGoals();
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    async function loadSavedParishes() {
+      try {
+        const response = await fetch('/api/user/saved-parishes');
+        if (!response.ok) throw new Error('Failed to load saved parishes');
+        
+        const saved = await response.json();
+        const container = document.getElementById('saved-parishes-container');
+
+        if (saved.length === 0) {
+          container.innerHTML = '<p class="empty-state">You haven\'t saved any parishes yet</p>';
+          return;
+        }
+
+        container.innerHTML = `<div class="saved-parishes-grid">` + saved.map(s => `
+          <div class="parish-card">
+            <button class="remove-save-btn" onclick="deleteSavedParish(${s.id})">✕</button>
+            <h4>${s.name}</h4>
+            <p>${s.address}</p>
+            <p>${s.city}, ${s.state} ${s.zip}</p>
+            <p>${s.jurisdiction}</p>
+            ${s.website ? `<p><a href="${s.website}" target="_blank">Website ↗</a></p>` : ''}
+          </div>
+        `).join('') + `</div>`;
+      } catch (err) {
+        document.getElementById('saved-parishes-container').innerHTML = '<p class="empty-state">Failed to load saved parishes</p>';
+      }
+    }
+
+    async function deleteSavedParish(id) {
+      if (!confirm('Remove this saved parish?')) return;
+
+      try {
+        const response = await fetch(`/api/user/saved-parishes/${id}`, { method: 'DELETE' });
+        if (!response.ok) throw new Error('Failed to delete');
+        showMessage('Parish removed from saves', 'success');
+        await loadSavedParishes();
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    async function loadVisits() {
+      try {
+        const response = await fetch('/api/user/visits');
+        if (!response.ok) throw new Error('Failed to load visits');
+        
+        const visits = await response.json();
+        const container = document.getElementById('visits-container');
+
+        if (visits.length === 0) {
+          container.innerHTML = '<p class="empty-state">You haven\'t logged any parish visits yet</p>';
+          return;
+        }
+
+        container.innerHTML = visits.map(v => `
+          <div class="list-item">
+            <div class="list-item-info">
+              <h4>${v.name}</h4>
+              <p>${v.city}, ${v.state}</p>
+              <p>${v.jurisdiction}</p>
+              ${v.notes ? `<p style="margin-top: 0.5rem; font-style: italic;">"${v.notes}"</p>` : ''}
+              <p style="font-size: 0.8rem; margin-top: 0.3rem;">${new Date(v.visited_at).toLocaleDateString()}</p>
+            </div>
+            <div class="list-item-actions">
+              <button class="btn btn-small btn-danger" onclick="deleteVisit(${v.id})">Remove</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        document.getElementById('visits-container').innerHTML = '<p class="empty-state">Failed to load visits</p>';
+      }
+    }
+
+    async function deleteVisit(id) {
+      if (!confirm('Remove this parish from your visited list?')) return;
+
+      try {
+        const response = await fetch(`/api/user/visits/${id}`, { method: 'DELETE' });
+        if (!response.ok) throw new Error('Failed to delete');
+        showMessage('Visit removed', 'success');
+        await loadVisits();
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    async function addJournalEntry(event) {
+      event.preventDefault();
+      
+      const data = {
+        title: document.getElementById('entry_title').value,
+        content: document.getElementById('entry_content').value,
+        parish_id: document.getElementById('entry_parish_id').value ? parseInt(document.getElementById('entry_parish_id').value) : null,
+        entry_date: document.getElementById('entry_date').value || new Date().toISOString(),
+      };
+
+      try {
+        const response = await fetch('/api/user/journal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+
+        if (!response.ok) throw new Error('Failed to save entry');
+        showMessage('Journal entry saved!', 'success');
+        document.getElementById('journal-form').reset();
+        document.getElementById('entry_parish_display').classList.add('hidden');
+        setTodayDate();
+        await loadJournal();
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    async function loadJournal() {
+      try {
+        const response = await fetch('/api/user/journal');
+        if (!response.ok) throw new Error('Failed to load entries');
+        
+        const entries = await response.json();
+        const container = document.getElementById('entries-container');
+
+        if (entries.length === 0) {
+          container.innerHTML = '<p class="empty-state">No journal entries yet. Write your first entry above!</p>';
+          return;
+        }
+
+        container.innerHTML = entries.map(e => `
+          <div class="journal-entry">
+            <div class="journal-entry-header">
+              <div>
+                <div class="journal-entry-title">${e.title || 'Untitled'}</div>
+                ${e.parish_name ? `<p style="font-size: 0.85rem; color: var(--text-muted);">at ${e.parish_name}</p>` : ''}
+              </div>
+              <div style="text-align: right;">
+                <div class="journal-entry-date">${new Date(e.entry_date).toLocaleDateString()}</div>
+                <button class="btn btn-small btn-danger" onclick="deleteJournalEntry(${e.id})">Delete</button>
+              </div>
+            </div>
+            <div class="journal-entry-content">${(e.content || '').replace(/\n/g, '<br>')}</div>
+          </div>
+        `).join('');
+      } catch (err) {
+        document.getElementById('entries-container').innerHTML = '<p class="empty-state">Failed to load entries</p>';
+      }
+    }
+
+    async function deleteJournalEntry(id) {
+      if (!confirm('Delete this journal entry?')) return;
+
+      try {
+        const response = await fetch(`/api/user/journal/${id}`, { method: 'DELETE' });
+        if (!response.ok) throw new Error('Failed to delete');
+        showMessage('Entry deleted', 'success');
+        await loadJournal();
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    function setupParishSearch() {
+      const searches = [
+        { inputId: 'baptismal_parish_search', resultsId: 'baptismal_search_results', onSelect: selectBaptismalParish },
+        { inputId: 'current_parish_search', resultsId: 'current_search_results', onSelect: selectCurrentParish },
+        { inputId: 'visit_parish_search', resultsId: 'visit_search_results', onSelect: selectVisitParish },
+        { inputId: 'save_parish_search', resultsId: 'save_search_results', onSelect: selectSaveParish },
+        { inputId: 'entry_parish_search', resultsId: 'entry_search_results', onSelect: selectEntryParish },
+      ];
+
+      searches.forEach(s => {
+        document.getElementById(s.inputId).addEventListener('input', (e) => {
+          searchParishes(e.target.value, document.getElementById(s.resultsId), s.onSelect);
+        });
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.parish-search')) {
+          document.querySelectorAll('.search-results').forEach(el => el.classList.remove('visible'));
+        }
+      });
+    }
+
+    function searchParishes(query, resultsEl, onSelect) {
+      if (!query || query.length < 2) {
+        resultsEl.classList.remove('visible');
+        return;
+      }
+
+      const q = query.toLowerCase();
+      const matches = allParishes.filter(p => 
+        p.name.toLowerCase().includes(q) ||
+        p.city?.toLowerCase().includes(q) ||
+        p.state?.toLowerCase().includes(q)
+      ).slice(0, 10);
+
+      if (matches.length === 0) {
+        resultsEl.innerHTML = '<div class="search-result-item">No parishes found</div>';
+        resultsEl.classList.add('visible');
+        return;
+      }
+
+      resultsEl.innerHTML = matches.map(p => `
+        <div class="search-result-item" data-id="${p.id}">
+          <strong>${p.name}</strong>
+          <small>${p.city}, ${p.state} • ${p.jurisdiction}</small>
+        </div>
+      `).join('');
+
+      resultsEl.onclick = (e) => {
+        const item = e.target.closest('.search-result-item');
+        if (item?.dataset.id) {
+          const parish = allParishes.find(p => p.id == item.dataset.id);
+          onSelect(parish);
+          resultsEl.classList.remove('visible');
+        }
+      };
+
+      resultsEl.classList.add('visible');
+    }
+
+    function selectBaptismalParish(parish) {
+      document.getElementById('baptismal_parish_id').value = parish.id;
+      document.getElementById('baptismal_parish_name').textContent = `${parish.name} - ${parish.city}, ${parish.state}`;
+      document.getElementById('baptismal_parish_display').classList.remove('hidden');
+      document.getElementById('baptismal_parish_search').value = '';
+    }
+
+    function selectCurrentParish(parish) {
+      document.getElementById('current_parish_id').value = parish.id;
+      document.getElementById('current_parish_name').textContent = `${parish.name} - ${parish.city}, ${parish.state}`;
+      document.getElementById('current_parish_display').classList.remove('hidden');
+      document.getElementById('current_parish_search').value = '';
+      updateProfileSummary();
+    }
+
+    function selectEntryParish(parish) {
+      document.getElementById('entry_parish_id').value = parish.id;
+      document.getElementById('entry_parish_name').textContent = `${parish.name} - ${parish.city}, ${parish.state}`;
+      document.getElementById('entry_parish_display').classList.remove('hidden');
+      document.getElementById('entry_parish_search').value = '';
+    }
+
+    async function selectVisitParish(parish) {
+      try {
+        const response = await fetch('/api/user/visits', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ parish_id: parish.id }),
+        });
+
+        if (!response.ok) throw new Error('Failed to add visit');
+        showMessage('Parish visit added!', 'success');
+        document.getElementById('visit_parish_search').value = '';
+        await loadVisits();
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    async function selectSaveParish(parish) {
+      try {
+        const response = await fetch('/api/user/saved-parishes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ parish_id: parish.id }),
+        });
+
+        if (!response.ok) throw new Error('Failed to save parish');
+        showMessage('Parish saved!', 'success');
+        document.getElementById('save_parish_search').value = '';
+        await loadSavedParishes();
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    function clearBaptismalParish() {
+      document.getElementById('baptismal_parish_id').value = '';
+      document.getElementById('baptismal_parish_display').classList.add('hidden');
+    }
+
+    function clearCurrentParish() {
+      document.getElementById('current_parish_id').value = '';
+      document.getElementById('current_parish_display').classList.add('hidden');
+      updateProfileSummary();
+    }
+
+    function clearEntryParish() {
+      document.getElementById('entry_parish_id').value = '';
+      document.getElementById('entry_parish_display').classList.add('hidden');
+    }
+
+    async function loadClosestParish() {
+      try {
+        const response = await fetch('/api/user/closest-parish');
+        if (!response.ok) {
+          document.getElementById('closest-parish-container').innerHTML = '<p class="empty-state">Unable to calculate closest parish</p>';
+          return;
+        }
+
+        const data = await response.json();
+        const parishes = data.parishes || data;
+        
+        if (!parishes?.length) {
+          document.getElementById('closest-parish-container').innerHTML = '<p class="empty-state">No parishes found nearby</p>';
+          return;
+        }
+
+        const closest = parishes[0];
+        const affiliationLabel = currentProfile?.church_affiliation ? 
+          (document.getElementById('church_affiliation').options[document.getElementById('church_affiliation').selectedIndex]?.text || 'Your Affiliation') : 
+          'By Affiliation';
+        
+        let resultInfo = '';
+        if (data.filtered !== undefined) {
+          if (data.filtered) {
+            resultInfo = `<p style="font-size: 0.85rem; color: var(--gold); margin-bottom: 0.75rem; padding: 0.5rem; background: rgba(197, 163, 68, 0.1); border-radius: 4px;">📍 <strong>Filtered by ${affiliationLabel}</strong></p>`;
+          } else if (data.message) {
+            resultInfo = `<p style="font-size: 0.85rem; color: #666; margin-bottom: 0.75rem; padding: 0.5rem; background: #f0f0f0; border-radius: 4px;">⚠️ ${data.message}</p>`;
+          }
+        }
+
+        document.getElementById('closest-parish-container').innerHTML = `
+          ${resultInfo}
+          <div class="prayer-focus-item" style="border-left-color: var(--gold);">
+            <h3 style="margin-bottom: 0.5rem;">${closest.name}</h3>
+            <p><strong>${closest.distance.toFixed(2)} miles away</strong></p>
+            ${closest.address ? `<p>${closest.address}</p>` : ''}
+            <p>${closest.city}, ${closest.state} ${closest.zip}</p>
+            <p style="color: var(--gold); font-weight: 500;">${closest.jurisdiction}</p>
+            ${closest.phone ? `<p>☎️ <a href="tel:${closest.phone}">${closest.phone}</a></p>` : ''}
+            ${closest.website ? `<p><a href="${closest.website}" target="_blank">🌐 Website</a></p>` : ''}
+          </div>
+        `;
+      } catch (err) {
+        document.getElementById('closest-parish-container').innerHTML = '<p class="empty-state">Add your home address to see your closest parish</p>';
+      }
+    }
+
+    async function refreshClosestParish() {
+      if (!currentProfile?.home_lat) {
+        showMessage('Please add your home address first', 'error');
+        return;
+      }
+      await loadClosestParish();
+    }
+
+    async function geocodeAddress(address) {
+      try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`);
+        const data = await response.json();
+        if (data?.length > 0) {
+          return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+        }
+      } catch (err) {
+        console.error('Geocoding failed:', err);
+      }
+      return null;
+    }
+
+    function setTodayDate() {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('entry_date').value = today;
+    }
+
+    function showMessage(message, type) {
+      const container = document.getElementById('message-container');
+      const alertClass = type === 'success' ? 'alert-success' : (type === 'error' ? 'alert-error' : 'alert-info');
+      
+      container.innerHTML = `<div class="alert ${alertClass}">${message}</div>`;
+      
+      setTimeout(() => {
+        container.innerHTML = '';
+      }, 5000);
+    }
+
+    async function logout() {
+      try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        window.location.href = '/auth.html';
+      } catch (err) {
+        alert('Failed to logout');
+      }
+    }
+  </script>
+</body>
+</html>

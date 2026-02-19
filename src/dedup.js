@@ -21,14 +21,16 @@ function norm(s) {
 /**
  * Normalise a parish name for comparison:
  *   – lowercase, strip non-alphanumeric
- *   – remove common suffixes/qualifiers that differ between sources
+ *   – remove only source-tag suffixes that add no distinguishing info
+ *   – keep words like "church", "mission", "cathedral" that distinguish
+ *     separate parishes in the same city
  */
 function normName(name) {
   let n = norm(name);
-  // Strip common inconsistent suffixes
-  n = n.replace(/(orthodox|russian|rocor|oca|church|mission|cathedral|chapel|monastery|parish|www)$/, "");
-  // Also strip leading "st" / "sts" / "ss" (saint abbreviations)
-  // but keep it for key purposes – saints are distinctive
+  // Only strip source-tag suffixes and truly meaningless markers.
+  // Keep distinguishing type words (church, mission, cathedral, monastery, chapel)
+  // so that e.g. "St. Nicholas Cathedral" !== "St. Nicholas Mission" in the same city.
+  n = n.replace(/(orthodox|russian|rocor|oca|www)$/, "");
   return n;
 }
 
@@ -68,26 +70,20 @@ function sourcePriority(src) {
 
 // ── Merge logic ───────────────────────────────────────────────────────
 
-/** Pick the "better" value for a single field across two records */
-function pick(a, b) {
-  if (!a) return b || "";
-  if (!b) return a;
-  // Prefer the longer (more detailed) string
-  return a.length >= b.length ? a : b;
-}
-
 /**
  * Merge an array of duplicate records into one.
- * Fields are filled from the richest available source.
+ * Fields are filled preferring the highest-priority source.
+ * When priority is equal, the longer (more detailed) string wins.
  * `source` becomes a comma-separated list of all contributing sources.
  */
 function mergeGroup(records) {
-  // Sort so highest-priority source is last (its values overwrite)
+  // Sort ascending by priority so highest-priority source is last
   const sorted = [...records].sort(
     (a, b) => sourcePriority(a.source) - sourcePriority(b.source)
   );
 
   const merged = {};
+  const mergedPriority = {}; // track which source priority wrote each field
   const fields = [
     "name", "jurisdiction", "diocese", "deanery",
     "city", "state", "country", "phone",
@@ -96,13 +92,20 @@ function mergeGroup(records) {
 
   for (const field of fields) {
     merged[field] = "";
+    mergedPriority[field] = -1;
   }
 
   for (const rec of sorted) {
+    const recPri = sourcePriority(rec.source);
     for (const field of fields) {
       const val = (rec[field] ?? "").toString().trim();
-      if (val) {
-        merged[field] = pick(merged[field], val);
+      if (!val) continue;
+      const curVal = merged[field];
+      const curPri = mergedPriority[field];
+      // Higher priority always wins; equal priority picks longer string
+      if (!curVal || recPri > curPri || (recPri === curPri && val.length > curVal.length)) {
+        merged[field] = val;
+        mergedPriority[field] = recPri;
       }
     }
   }

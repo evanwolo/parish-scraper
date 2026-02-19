@@ -45,7 +45,7 @@ async function tryAPI() {
 
   for (const url of apiUrls) {
     try {
-      const json = await fetchJSON(url);
+      const json = await fetchJSON(url, 1); // don't retry probes
       const arr = Array.isArray(json) ? json : (json?.data?.parishes || json?.parishes || json?.results || []);
       if (arr.length > 0) {
         console.log(`[${SOURCE_NAME}] Got ${arr.length} records from API: ${url}`);
@@ -59,7 +59,7 @@ async function tryAPI() {
     const all = [];
     for (let page = 1; page <= 10; page++) {
       const url = `https://www.antiochian.org/wp-json/wp/v2/parish?per_page=100&page=${page}`;
-      const json = await fetchJSON(url);
+      const json = await fetchJSON(url, 1); // don't retry paginated probes
       const arr = Array.isArray(json) ? json : [];
       if (arr.length === 0) break;
       all.push(...arr.map(normaliseRecord));
