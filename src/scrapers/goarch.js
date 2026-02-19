@@ -22,7 +22,7 @@ const JURISDICTION = "Greek Orthodox Archdiocese of America";
 const METROPOLISES = [
   { code: "direct",    name: "Direct Archdiocesan District" },
   { code: "atlanta",   name: "Metropolis of Atlanta" },
-  { code: "boston",     name: "Metropolis of Boston" },  // was New England
+  { code: "boston",     name: "Metropolis of Boston" },  // historically "Metropolis of New England"; scraper uses current GOARCH naming
   { code: "chicago",   name: "Metropolis of Chicago" },
   { code: "denver",    name: "Metropolis of Denver" },
   { code: "detroit",   name: "Metropolis of Detroit" },

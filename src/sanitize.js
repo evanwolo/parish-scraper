@@ -144,7 +144,7 @@ const COUNTRY_CANONICAL = {
 function cleanStr(s) {
   if (!s) return "";
   return s
-    .replace(/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/g, "") // control chars (keep \n for later)
+    .replace(/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/g, "") // control chars except \n (handled below)
     .replace(/\r?\n/g, " ")      // newlines → space
     .replace(/&amp;/gi, "&")     // common HTML entities
     .replace(/&nbsp;/gi, " ")
@@ -190,7 +190,7 @@ function sanitizeName(raw) {
   // Remove wrapping single-quotes similarly
   s = s.replace(/^'(.*)'$/, "$1");
   // Normalise "St " / "Ss " / "Sts " variants
-  s = s.replace(/^Ss?\.\s*/i, (m) => m.charAt(0).toUpperCase() + m.slice(1).toLowerCase());
+  s = s.replace(/^Sts?\.\s*/i, (m) => m.charAt(0).toUpperCase() + m.slice(1).toLowerCase());
   s = cleanStr(s); // re-trim after removals
   return s;
 }
@@ -312,7 +312,7 @@ function sanitizeWebsite(raw, source) {
   }
 
   // Add protocol if missing
-  if (s && !s.match(/^https?:\/\//i)) {
+  if (!s.match(/^https?:\/\//i)) {
     s = "https://" + s;
   }
 

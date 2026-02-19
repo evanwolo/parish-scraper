@@ -260,7 +260,7 @@
     initMap();
   }).catch(err => {
     document.getElementById("loading-overlay").innerHTML =
-      `<div style="text-align:center"><p style="color:#c55">Failed to load map data</p><p style="color:#aab;font-size:0.82rem;margin-top:0.5rem">${err.message}<br>Make sure you've run <code>npm run compute</code></p></div>`;
+      `<div style="text-align:center"><p style="color:#c55">Failed to load map data</p><p style="color:#aab;font-size:0.82rem;margin-top:0.5rem">${err.message}<br>Make sure you've run <code>npm run scrape</code></p></div>`;
   });
 
   // ── Build legend ────────────────────────────

@@ -26,7 +26,7 @@ function norm(s) {
 function normName(name) {
   let n = norm(name);
   // Strip common inconsistent suffixes
-  n = n.replace(/(orthodox|russian|rocor|oca|church|mission|cathedral|chapel|monastery|parish|www)$/g, "");
+  n = n.replace(/(orthodox|russian|rocor|oca|church|mission|cathedral|chapel|monastery|parish|www)$/, "");
   // Also strip leading "st" / "sts" / "ss" (saint abbreviations)
   // but keep it for key purposes – saints are distinctive
   return n;

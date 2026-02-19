@@ -598,13 +598,18 @@
   }
 
   // ── Highlighting ────────────────────────────
+  function escapeRegex(term) {
+    // Escape regex-special characters so term can be safely used in a RegExp
+    return term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
   function highlight(text) {
     if (!text || highlightTerms.length === 0) return esc(text);
     let safe = esc(text);
     for (const term of highlightTerms) {
       if (!term) continue;
       // Escape regex specials in term, then replace all occurrences (case-insensitive)
-      const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const escaped = escapeRegex(term);
       safe = safe.replace(new RegExp("(" + escaped + ")", "gi"), "<mark>$1</mark>");
     }
     return safe;

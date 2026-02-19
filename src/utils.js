@@ -53,6 +53,12 @@ async function fetchJSON(url, retries = 3) {
   }
 }
 
+/**
+ * Pause execution for the specified number of milliseconds.
+ *
+ * @param {number} ms - The delay in milliseconds before the Promise resolves.
+ * @returns {Promise<void>} A Promise that resolves after the given delay.
+ */
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
