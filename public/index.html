@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orthodox Parish Directory</title>
+  <style>
+    :root {
+      --gold: #c5a344;
+      --gold-light: #f5ecd0;
+      --navy: #1a2332;
+      --navy-light: #253346;
+      --white: #fafafa;
+      --text: #222;
+      --text-muted: #666;
+      --border: #ddd;
+      --radius: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+      background: var(--white);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    /* ── Header ─────────────────────────────── */
+    header {
+      background: var(--navy);
+      color: #fff;
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    header h1 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    header h1 span { color: var(--gold); }
+    .header-stats {
+      font-size: 0.85rem;
+      color: #aab;
+    }
+
+    /* ── Controls bar ───────────────────────── */
+    .controls {
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 2rem;
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .search-wrap {
+      position: relative;
+      flex: 1 1 320px;
+      display: flex;
+      align-items: center;
+    }
+    .search-wrap input[type="text"] {
+      width: 100%;
+      padding: 0.5rem 2.2rem 0.5rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-wrap input[type="text"]:focus { border-color: var(--gold); }
+    .search-clear {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      padding: 2px 5px;
+      border-radius: 3px;
+      display: none;
+      line-height: 1;
+    }
+    .search-clear:hover { background: #eee; color: var(--text); }
+    .search-wrap .search-hint {
+      position: absolute;
+      right: 30px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.7rem;
+      color: #bbb;
+      pointer-events: none;
+      font-family: monospace;
+    }
+    .controls select {
+      padding: 0.5rem 0.6rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.85rem;
+      background: #fff;
+      cursor: pointer;
+    }
+    .badge {
+      background: var(--gold-light);
+      color: var(--navy);
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.3rem 0.7rem;
+      border-radius: 99px;
+      white-space: nowrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.45rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.82rem;
+      background: #fff;
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    .btn:hover { background: var(--gold-light); border-color: var(--gold); }
+    .btn svg { width: 14px; height: 14px; fill: currentColor; }
+
+    /* ── Search help tooltip ────────────────── */
+    .search-help-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .search-help-btn:hover { background: var(--gold-light); color: var(--navy); }
+    .search-help-popup {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      padding: 0.85rem 1rem;
+      font-size: 0.82rem;
+      line-height: 1.65;
+      z-index: 100;
+      min-width: 340px;
+      max-width: 440px;
+    }
+    .search-help-popup.visible { display: block; }
+    .search-help-popup h4 { font-size: 0.85rem; margin-bottom: 0.3rem; color: var(--navy); }
+    .search-help-popup code {
+      background: #f0ece0;
+      padding: 0.1rem 0.35rem;
+      border-radius: 3px;
+      font-size: 0.78rem;
+    }
+    .search-help-popup ul { list-style: none; padding: 0; }
+    .search-help-popup li { margin-bottom: 0.15rem; }
+    .search-help-popup li::before { content: "• "; color: var(--gold); font-weight: 700; }
+
+    /* ── Active filter pills ────────────────── */
+    .active-filters {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      padding: 0 2rem;
+    }
+    .active-filters:empty { display: none; }
+    .filter-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      background: var(--gold-light);
+      color: var(--navy);
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 0.2rem 0.55rem;
+      border-radius: 99px;
+      margin-top: 0.35rem;
+    }
+    .filter-pill button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: var(--navy);
+      padding: 0;
+      line-height: 1;
+      margin-left: 2px;
+    }
+    .filter-pill button:hover { color: #c00; }
+
+    /* ── Table ──────────────────────────────── */
+    .table-wrap {
+      overflow-x: auto;
+      padding: 0 2rem 2rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.5rem;
+      font-size: 0.88rem;
+    }
+    thead th {
+      background: var(--navy);
+      color: #fff;
+      padding: 0.55rem 0.7rem;
+      text-align: left;
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+    }
+    thead th:hover { background: var(--navy-light); }
+    thead th .sort-arrow { margin-left: 4px; font-size: 0.7rem; opacity: 0.5; }
+    thead th.sorted .sort-arrow { opacity: 1; color: var(--gold); }
+    tbody tr { border-bottom: 1px solid #eee; }
+    tbody tr:hover { background: #f8f6ee; }
+    td {
+      padding: 0.5rem 0.7rem;
+      vertical-align: top;
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    td a {
+      color: var(--gold);
+      text-decoration: none;
+    }
+    td a:hover { text-decoration: underline; }
+    .source-tag {
+      display: inline-block;
+      background: var(--navy);
+      color: #fff;
+      font-size: 0.7rem;
+      padding: 0.1rem 0.45rem;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
+    mark {
+      background: #ffe680;
+      color: inherit;
+      padding: 0 1px;
+      border-radius: 2px;
+    }
+
+    /* ── Loading / empty ────────────────────── */
+    .message {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+    .spinner {
+      display: inline-block;
+      width: 24px; height: 24px;
+      border: 3px solid var(--border);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 0.5rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Responsive ─────────────────────────── */
+    @media (max-width: 768px) {
+      header, .controls, .table-wrap, .active-filters { padding-left: 1rem; padding-right: 1rem; }
+      table { font-size: 0.8rem; }
+      .search-help-popup { min-width: 260px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>☦ <span>Orthodox</span> Parish Directory</h1>
+  <div class="header-stats" id="stats">Loading…</div>
+</header>
+
+<div class="controls" style="position:sticky;top:0;z-index:10;">
+  <div class="search-wrap">
+    <input type="text" id="search" placeholder="Search — multiple words, &quot;exact phrase&quot;, or city:Chicago …" autocomplete="off">
+    <button class="search-clear" id="searchClear" title="Clear search">✕</button>
+    <span class="search-hint" id="searchHint">/</span>
+    <div class="search-help-popup" id="searchHelp">
+      <h4>Search Tips</h4>
+      <ul>
+        <li><code>chicago</code> — find anywhere</li>
+        <li><code>holy trinity chicago</code> — all words must match (AND)</li>
+        <li><code>"holy trinity"</code> — exact phrase</li>
+        <li><code>city:chicago</code> — search specific field</li>
+        <li><code>state:IL name:trinity</code> — combine field filters</li>
+        <li><code>jurisdiction:oca</code> — by jurisdiction</li>
+      </ul>
+      <p style="margin-top:0.4rem;color:#999;font-size:0.75rem;">Fields: name, city, state, jurisdiction, diocese, deanery, address, clergy, phone</p>
+    </div>
+  </div>
+  <button class="search-help-btn" id="searchHelpBtn" title="Search tips">?</button>
+  <select id="filterSource"><option value="">All Sources</option></select>
+  <select id="filterJurisdiction"><option value="">All Jurisdictions</option></select>
+  <select id="filterState"><option value="">All States</option></select>
+  <span class="badge" id="countBadge">…</span>
+  <button class="btn" id="exportBtn" title="Export filtered results as CSV">
+    <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+    Export CSV
+  </button>
+</div>
+
+<div class="active-filters" id="activeFilters"></div>
+
+<div class="table-wrap">
+  <div class="message" id="loading"><span class="spinner"></span> Loading parish data…</div>
+  <table id="parishTable" style="display:none">
+    <thead>
+      <tr>
+        <th data-col="name">Name <span class="sort-arrow">▲</span></th>
+        <th data-col="city">City <span class="sort-arrow">▲</span></th>
+        <th data-col="state">State <span class="sort-arrow">▲</span></th>
+        <th data-col="jurisdiction">Jurisdiction <span class="sort-arrow">▲</span></th>
+        <th data-col="diocese">Diocese <span class="sort-arrow">▲</span></th>
+        <th data-col="deanery">Deanery <span class="sort-arrow">▲</span></th>
+        <th data-col="phone">Phone <span class="sort-arrow">▲</span></th>
+        <th data-col="source">Source <span class="sort-arrow">▲</span></th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div class="message" id="empty" style="display:none">No parishes match your search.</div>
+</div>
+
+<script>
+(function () {
+  let allData = [];
+  let filtered = [];
+  let sortCol = "name";
+  let sortAsc = true;
+  let highlightTerms = [];  // plain terms for highlighting
+
+  const SEARCHABLE_FIELDS = ["name","city","state","jurisdiction","diocese","deanery","address","clergy","phone"];
+
+  const $search = document.getElementById("search");
+  const $searchClear = document.getElementById("searchClear");
+  const $searchHint = document.getElementById("searchHint");
+  const $searchHelp = document.getElementById("searchHelp");
+  const $searchHelpBtn = document.getElementById("searchHelpBtn");
+  const $source = document.getElementById("filterSource");
+  const $jurisdiction = document.getElementById("filterJurisdiction");
+  const $state = document.getElementById("filterState");
+  const $badge = document.getElementById("countBadge");
+  const $tbody = document.getElementById("tbody");
+  const $table = document.getElementById("parishTable");
+  const $loading = document.getElementById("loading");
+  const $empty = document.getElementById("empty");
+  const $stats = document.getElementById("stats");
+  const $activeFilters = document.getElementById("activeFilters");
+  const $exportBtn = document.getElementById("exportBtn");
+
+  // ── Search help toggle ──────────────────────
+  $searchHelpBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    $searchHelp.classList.toggle("visible");
+  });
+  document.addEventListener("click", () => $searchHelp.classList.remove("visible"));
+  $searchHelp.addEventListener("click", (e) => e.stopPropagation());
+
+  // ── Keyboard shortcut: / to focus search, Esc to clear ──
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "/" && document.activeElement !== $search) {
+      e.preventDefault();
+      $search.focus();
+    }
+    if (e.key === "Escape" && document.activeElement === $search) {
+      if ($search.value) { $search.value = ""; applyFilters(); }
+      else { $search.blur(); }
+    }
+  });
+
+  // ── Clear button visibility ─────────────────
+  function updateClearBtn() {
+    $searchClear.style.display = $search.value ? "block" : "none";
+    $searchHint.style.display = $search.value ? "none" : "";
+  }
+  $search.addEventListener("input", updateClearBtn);
+  $searchClear.addEventListener("click", () => {
+    $search.value = "";
+    updateClearBtn();
+    applyFilters();
+    $search.focus();
+  });
+
+  // ── Parse search query into tokens ──────────
+  // Supports: field:value, "exact phrase", bare words (AND logic)
+  function parseQuery(raw) {
+    const tokens = [];
+    const re = /(\w+):("([^"]*)"|([\S]+))|"([^"]*)"|(\S+)/g;
+    let m;
+    while ((m = re.exec(raw)) !== null) {
+      if (m[1]) {
+        // field:value
+        const field = m[1].toLowerCase();
+        const value = (m[3] !== undefined ? m[3] : m[4]).toLowerCase();
+        tokens.push({ type: "field", field, value });
+      } else if (m[5] !== undefined) {
+        // "exact phrase"
+        tokens.push({ type: "phrase", value: m[5].toLowerCase() });
+      } else if (m[6]) {
+        // bare word
+        tokens.push({ type: "word", value: m[6].toLowerCase() });
+      }
+    }
+    return tokens;
+  }
+
+  // Check if a record matches all query tokens
+  function matchRecord(record, tokens) {
+    for (const tok of tokens) {
+      if (tok.type === "field") {
+        // Match against specific field (or fields starting with prefix)
+        const matchedField = SEARCHABLE_FIELDS.find(f => f.startsWith(tok.field));
+        if (matchedField) {
+          const val = (record[matchedField] || "").toLowerCase();
+          if (!val.includes(tok.value)) return false;
+        } else {
+          // Unknown field — treat as generic word "field:value"
+          const hay = buildHay(record);
+          if (!hay.includes(tok.field + ":" + tok.value) && !hay.includes(tok.value)) return false;
+        }
+      } else if (tok.type === "phrase") {
+        const hay = buildHay(record);
+        if (!hay.includes(tok.value)) return false;
+      } else {
+        // bare word: must appear somewhere
+        const hay = buildHay(record);
+        if (!hay.includes(tok.value)) return false;
+      }
+    }
+    return true;
+  }
+
+  // Build searchable haystack string for a record (cached)
+  const hayCache = new WeakMap();
+  function buildHay(record) {
+    if (hayCache.has(record)) return hayCache.get(record);
+    const hay = SEARCHABLE_FIELDS.map(f => record[f] || "").join(" ").toLowerCase();
+    hayCache.set(record, hay);
+    return hay;
+  }
+
+  // ── Fetch data ──────────────────────────────
+  fetch("/api/parishes")
+    .then((r) => r.json())
+    .then((data) => {
+      allData = data;
+      $loading.style.display = "none";
+      $table.style.display = "";
+
+      // Populate source filter
+      const sources = [...new Set(data.map((d) => d.source).filter(Boolean))].sort();
+      sources.forEach((s) => {
+        const o = document.createElement("option");
+        o.value = s;
+        o.textContent = s;
+        $source.appendChild(o);
+      });
+
+      // Populate jurisdiction filter
+      const jurisdictions = [...new Set(data.map((d) => d.jurisdiction).filter(Boolean))].sort();
+      jurisdictions.forEach((j) => {
+        const o = document.createElement("option");
+        o.value = j;
+        o.textContent = j.length > 50 ? j.slice(0, 48) + "…" : j;
+        $jurisdiction.appendChild(o);
+      });
+
+      // Populate state filter
+      const states = [...new Set(data.map((d) => d.state).filter(Boolean))].sort();
+      states.forEach((s) => {
+        const o = document.createElement("option");
+        o.value = s;
+        o.textContent = s;
+        $state.appendChild(o);
+      });
+
+      $stats.textContent = `${data.length} parishes from ${sources.length} sources`;
+      applyFilters();
+    })
+    .catch(() => {
+      $loading.innerHTML = "Failed to load parish data. Make sure you've run the scraper first.";
+    });
+
+  // ── Filtering ───────────────────────────────
+  let debounceTimer;
+  function applyFilters() {
+    const raw = $search.value.trim();
+    const src = $source.value;
+    const jur = $jurisdiction.value;
+    const st = $state.value;
+
+    const tokens = parseQuery(raw);
+
+    // Collect plain terms for highlighting
+    highlightTerms = tokens
+      .map(t => t.value)
+      .filter(v => v.length > 0);
+
+    filtered = allData.filter((r) => {
+      if (src && r.source !== src) return false;
+      if (jur && r.jurisdiction !== jur) return false;
+      if (st && r.state !== st) return false;
+      if (tokens.length > 0 && !matchRecord(r, tokens)) return false;
+      return true;
+    });
+
+    sortData();
+    render();
+    renderActiveFilters();
+  }
+
+  function debouncedApply() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(applyFilters, 120);
+  }
+
+  $search.addEventListener("input", debouncedApply);
+  $source.addEventListener("change", applyFilters);
+  $jurisdiction.addEventListener("change", applyFilters);
+  $state.addEventListener("change", applyFilters);
+
+  // ── Active filter pills ─────────────────────
+  function renderActiveFilters() {
+    const pills = [];
+    if ($source.value) pills.push({ label: "Source: " + $source.value, clear: () => { $source.value = ""; applyFilters(); }});
+    if ($jurisdiction.value) {
+      const short = $jurisdiction.value.length > 30 ? $jurisdiction.value.slice(0,28) + "…" : $jurisdiction.value;
+      pills.push({ label: "Jurisdiction: " + short, clear: () => { $jurisdiction.value = ""; applyFilters(); }});
+    }
+    if ($state.value) pills.push({ label: "State: " + $state.value, clear: () => { $state.value = ""; applyFilters(); }});
+    if ($search.value.trim()) pills.push({ label: "Search: " + $search.value.trim(), clear: () => { $search.value = ""; updateClearBtn(); applyFilters(); }});
+
+    $activeFilters.innerHTML = pills.map((p, i) =>
+      `<span class="filter-pill">${esc(p.label)} <button data-idx="${i}">✕</button></span>`
+    ).join("");
+
+    $activeFilters.querySelectorAll("button").forEach(btn => {
+      btn.addEventListener("click", () => pills[+btn.dataset.idx].clear());
+    });
+  }
+
+  // ── Sorting ─────────────────────────────────
+  document.querySelectorAll("thead th[data-col]").forEach((th) => {
+    th.addEventListener("click", () => {
+      const col = th.dataset.col;
+      if (sortCol === col) sortAsc = !sortAsc;
+      else { sortCol = col; sortAsc = true; }
+
+      document.querySelectorAll("thead th").forEach((h) => h.classList.remove("sorted"));
+      th.classList.add("sorted");
+      th.querySelector(".sort-arrow").textContent = sortAsc ? "▲" : "▼";
+
+      sortData();
+      render();
+    });
+  });
+
+  function sortData() {
+    filtered.sort((a, b) => {
+      const va = (a[sortCol] || "").toLowerCase();
+      const vb = (b[sortCol] || "").toLowerCase();
+      if (va < vb) return sortAsc ? -1 : 1;
+      if (va > vb) return sortAsc ? 1 : -1;
+      return 0;
+    });
+  }
+
+  // ── Highlighting ────────────────────────────
+  function highlight(text) {
+    if (!text || highlightTerms.length === 0) return esc(text);
+    let safe = esc(text);
+    for (const term of highlightTerms) {
+      if (!term) continue;
+      // Escape regex specials in term, then replace all occurrences (case-insensitive)
+      const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      safe = safe.replace(new RegExp("(" + escaped + ")", "gi"), "<mark>$1</mark>");
+    }
+    return safe;
+  }
+
+  // ── Rendering ───────────────────────────────
+  function render() {
+    $badge.textContent = filtered.length + " shown";
+    $empty.style.display = filtered.length === 0 ? "" : "none";
+    $table.style.display = filtered.length === 0 ? "none" : "";
+
+    // Cap at 500 rows for perf
+    const max = 500;
+    const slice = filtered.slice(0, max);
+
+    const html = slice.map((r) => {
+      const nameHtml = highlight(r.name);
+      const nameCell = r.website
+        ? `<a href="${esc(r.website)}" target="_blank" rel="noopener">${nameHtml}</a>`
+        : nameHtml;
+      return `<tr>
+        <td>${nameCell}</td>
+        <td>${highlight(r.city)}</td>
+        <td>${highlight(r.state)}</td>
+        <td>${highlight(r.jurisdiction)}</td>
+        <td>${highlight(r.diocese)}</td>
+        <td>${highlight(r.deanery)}</td>
+        <td>${highlight(r.phone)}</td>
+        <td><span class="source-tag">${esc(r.source)}</span></td>
+      </tr>`;
+    }).join("");
+
+    $tbody.innerHTML = html + (filtered.length > max
+      ? `<tr><td colspan="8" style="text-align:center;color:#999;padding:1rem;">Showing first ${max} of ${filtered.length} results. Narrow your search to see more.</td></tr>`
+      : "");
+  }
+
+  function esc(s) {
+    if (!s) return "";
+    const d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  // ── CSV Export ──────────────────────────────
+  $exportBtn.addEventListener("click", () => {
+    if (filtered.length === 0) return;
+    const cols = ["name","city","state","jurisdiction","diocese","deanery","phone","address","clergy","website","lat","lng","source"];
+    const csvEsc = (v) => {
+      if (!v) return "";
+      const s = String(v);
+      if (s.includes(",") || s.includes('"') || s.includes("\n")) return '"' + s.replace(/"/g, '""') + '"';
+      return s;
+    };
+    const lines = [cols.join(",")];
+    filtered.forEach(r => lines.push(cols.map(c => csvEsc(r[c])).join(",")));
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "parishes-export.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+})();
+</script>
+
+</body>
+</html>

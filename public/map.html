@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jurisdiction Map — Orthodox Parish Directory</title>
+
+  <!-- MapLibre GL (free, no API key) -->
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+
+  <!-- deck.gl standalone -->
+  <script src="https://unpkg.com/deck.gl@9.1.7/dist.min.js"></script>
+
+  <style>
+    :root {
+      --gold: #c5a344;
+      --gold-light: #f5ecd0;
+      --navy: #1a2332;
+      --navy-light: #253346;
+      --white: #fafafa;
+      --text: #222;
+      --text-muted: #666;
+      --border: #ddd;
+      --radius: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+      background: #111;
+      color: var(--text);
+    }
+
+    /* ── Header ─────────────────────────────── */
+    header {
+      background: var(--navy);
+      color: #fff;
+      padding: 0.6rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      z-index: 20;
+      position: relative;
+    }
+    header h1 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    header h1 span { color: var(--gold); }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .header-stats {
+      font-size: 0.78rem;
+      color: #aab;
+    }
+    .nav-links a {
+      color: var(--gold);
+      text-decoration: none;
+      font-size: 0.82rem;
+      padding: 0.3rem 0.6rem;
+      border: 1px solid rgba(197,163,68,0.3);
+      border-radius: var(--radius);
+      transition: background 0.15s;
+    }
+    .nav-links a:hover {
+      background: rgba(197,163,68,0.15);
+    }
+
+    /* ── Map container ──────────────────────── */
+    #map-container {
+      position: relative;
+      width: 100%;
+      height: calc(100vh - 44px);
+    }
+    #map { width: 100%; height: 100%; }
+
+    /* ── Legend ──────────────────────────────── */
+    #legend {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(26,35,50,0.92);
+      backdrop-filter: blur(6px);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      font-size: 0.75rem;
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
+      z-index: 15;
+      min-width: 220px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+    }
+    #legend h3 {
+      font-size: 0.82rem;
+      margin-bottom: 6px;
+      color: var(--gold);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding-bottom: 4px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 0;
+      cursor: pointer;
+      opacity: 1;
+      transition: opacity 0.15s;
+    }
+    .legend-item:hover { opacity: 0.8; }
+    .legend-item.hidden { opacity: 0.35; text-decoration: line-through; }
+    .legend-swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      flex-shrink: 0;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    /* ── Tier toggle ────────────────────────── */
+    .tier-toggle {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(26,35,50,0.92);
+      backdrop-filter: blur(6px);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: var(--radius);
+      font-size: 0.78rem;
+      z-index: 15;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+    }
+    .tier-toggle label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+    .tier-toggle input { accent-color: var(--gold); }
+
+    /* ── Tooltip ─────────────────────────────── */
+    #tooltip {
+      position: absolute;
+      pointer-events: none;
+      background: rgba(26,35,50,0.95);
+      backdrop-filter: blur(8px);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: var(--radius);
+      font-size: 0.78rem;
+      line-height: 1.5;
+      z-index: 20;
+      max-width: 320px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.4);
+      display: none;
+      border: 1px solid rgba(197,163,68,0.3);
+    }
+    #tooltip strong { color: var(--gold); }
+    #tooltip .tt-row { display: flex; gap: 4px; }
+    #tooltip .tt-label { color: #aab; flex-shrink: 0; }
+
+    /* ── Loading overlay ─────────────────────── */
+    #loading-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(17,17,17,0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 30;
+      color: #fff;
+      font-size: 1rem;
+    }
+    .spinner {
+      display: inline-block;
+      width: 24px; height: 24px;
+      border: 3px solid #333;
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin-right: 0.5rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>☦ <span>Orthodox</span> Jurisdiction Map</h1>
+  <div class="header-right">
+    <div class="header-stats" id="stats">Loading…</div>
+    <nav class="nav-links">
+      <a href="/">← Table View</a>
+    </nav>
+  </div>
+</header>
+
+<div id="map-container">
+  <div id="map"></div>
+  <div id="loading-overlay"><span class="spinner"></span> Loading map data…</div>
+
+  <div id="legend">
+    <h3>Jurisdictions</h3>
+    <div id="legend-items"></div>
+  </div>
+
+  <div class="tier-toggle">
+    <label><input type="checkbox" id="showDioceses" checked> Diocese boundaries</label>
+    <label><input type="checkbox" id="showParishes" checked> Parish territories</label>
+    <label><input type="checkbox" id="showPoints" checked> Parish markers</label>
+    <label><input type="checkbox" id="showLabels"> Parish labels</label>
+  </div>
+
+  <div id="tooltip"></div>
+</div>
+
+<script>
+(function () {
+  // ── State ───────────────────────────────────
+  let dioceseData = null;
+  let parishPolyData = null;
+  let pointsData = null;
+  let metaData = null;
+  let hiddenJurisdictions = new Set();
+  let deckInstance = null;
+  let currentZoom = 4;
+
+  const tooltip = document.getElementById("tooltip");
+
+  // ── Fetch all data in parallel ──────────────
+  Promise.all([
+    fetch("/api/map/dioceses").then(r => r.json()),
+    fetch("/api/map/parishes-poly").then(r => r.json()),
+    fetch("/api/map/points").then(r => r.json()),
+    fetch("/api/map/meta").then(r => r.json()),
+  ]).then(([dioceses, parishPolys, points, meta]) => {
+    dioceseData = dioceses;
+    parishPolyData = parishPolys;
+    pointsData = points;
+    metaData = meta;
+
+    document.getElementById("loading-overlay").style.display = "none";
+    document.getElementById("stats").textContent =
+      `${meta.stats.parishes} parishes · ${meta.stats.dioceses} dioceses · ${meta.stats.clusters} clusters`;
+
+    buildLegend(meta);
+    initMap();
+  }).catch(err => {
+    document.getElementById("loading-overlay").innerHTML =
+      `<div style="text-align:center"><p style="color:#c55">Failed to load map data</p><p style="color:#aab;font-size:0.82rem;margin-top:0.5rem">${err.message}<br>Make sure you've run <code>npm run compute</code></p></div>`;
+  });
+
+  // ── Build legend ────────────────────────────
+  function buildLegend(meta) {
+    const container = document.getElementById("legend-items");
+    const jurisdictions = [...new Set(meta.dioceses.map(d => d.jurisdiction))].sort();
+
+    for (const j of jurisdictions) {
+      const color = meta.colors[j] || meta.defaultColor;
+      const el = document.createElement("div");
+      el.className = "legend-item";
+      el.innerHTML =
+        `<div class="legend-swatch" style="background:rgba(${color[0]},${color[1]},${color[2]},0.7)"></div>` +
+        `<span>${abbreviateJurisdiction(j)}</span>`;
+      el.addEventListener("click", () => {
+        if (hiddenJurisdictions.has(j)) {
+          hiddenJurisdictions.delete(j);
+          el.classList.remove("hidden");
+        } else {
+          hiddenJurisdictions.add(j);
+          el.classList.add("hidden");
+        }
+        updateLayers();
+      });
+      container.appendChild(el);
+    }
+  }
+
+  function abbreviateJurisdiction(j) {
+    return j
+      .replace("Russian Orthodox Church Outside of Russia", "ROCOR")
+      .replace("Orthodox Church in America", "OCA")
+      .replace("Greek Orthodox Archdiocese of America", "GOARCH")
+      .replace("Antiochian Orthodox Christian Archdiocese of North America", "Antiochian")
+      .replace("Serbian Orthodox Church in North and South America", "Serbian")
+      .replace("Romanian Orthodox Archdiocese in the Americas", "Romanian")
+      .replace("Bulgarian Eastern Orthodox Diocese of the USA, Canada, and Australia", "Bulgarian")
+      .replace("American Carpatho-Russian Orthodox Diocese", "ACROD")
+      .replace("Ukrainian Orthodox Church of the USA", "UOC-USA")
+      .replace("Albanian Orthodox Diocese of America", "Albanian")
+      .replace("Georgian Orthodox Church", "Georgian")
+      .replace("Patriarchal Parishes of the Russian Orthodox Church in the USA", "Moscow Pat.");
+  }
+
+  // ── Init deck.gl + MapLibre ─────────────────
+  function initMap() {
+    const INITIAL_VIEW = {
+      longitude: -96,
+      latitude: 39,
+      zoom: 4,
+      pitch: 0,
+      bearing: 0,
+    };
+
+    // Let deck.gl own the basemap via its mapLib integration —
+    // this avoids the two-canvas conflict that causes the flash.
+    const MAP_STYLE = {
+      version: 8,
+      sources: {
+        osm: {
+          type: "raster",
+          tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+          tileSize: 256,
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+        },
+      },
+      layers: [
+        {
+          id: "osm",
+          type: "raster",
+          source: "osm",
+          paint: { "raster-saturation": -0.6, "raster-brightness-min": 0.08 },
+        },
+      ],
+    };
+
+    deckInstance = new deck.DeckGL({
+      container: "map",
+      mapLib: maplibregl,
+      mapStyle: MAP_STYLE,
+      initialViewState: INITIAL_VIEW,
+      controller: true,
+      onViewStateChange: ({ viewState }) => {
+        currentZoom = viewState.zoom;
+        updateLayers();
+      },
+      getTooltip: null,
+    });
+
+    updateLayers();
+
+    // Tier toggle handlers
+    document.getElementById("showDioceses").addEventListener("change", updateLayers);
+    document.getElementById("showParishes").addEventListener("change", updateLayers);
+    document.getElementById("showPoints").addEventListener("change", updateLayers);
+    document.getElementById("showLabels").addEventListener("change", updateLayers);
+  }
+
+  // ── Filter features by hidden jurisdictions ─
+  function filterFC(fc) {
+    if (!fc || !fc.features) return { type: "FeatureCollection", features: [] };
+    if (hiddenJurisdictions.size === 0) return fc;
+    return {
+      type: "FeatureCollection",
+      features: fc.features.filter(f => !hiddenJurisdictions.has(f.properties.jurisdiction)),
+    };
+  }
+
+  // ── Update deck.gl layers ───────────────────
+  function updateLayers() {
+    if (!deckInstance || !dioceseData) return;
+
+    const showDioceses = document.getElementById("showDioceses").checked;
+    const showParishes = document.getElementById("showParishes").checked;
+    const showPoints = document.getElementById("showPoints").checked;
+    const showLabels = document.getElementById("showLabels").checked;
+
+    // Adaptive opacity: diocese boundaries fade in at low zoom, parish territories at higher zoom
+    const dioceseOpacity = showDioceses ? Math.max(0.1, Math.min(1, 1.2 - currentZoom * 0.08)) : 0;
+    const parishOpacity = showParishes ? Math.max(0, Math.min(1, (currentZoom - 5) * 0.15)) : 0;
+
+    const layers = [];
+
+    // Tier 1: Diocese polygons
+    if (showDioceses) {
+      layers.push(new deck.GeoJsonLayer({
+        id: "dioceses",
+        data: filterFC(dioceseData),
+        filled: true,
+        stroked: true,
+        getFillColor: f => {
+          const c = f.properties.color;
+          return [c[0], c[1], c[2], Math.round(c[3] * dioceseOpacity)];
+        },
+        getLineColor: f => {
+          const c = f.properties.color;
+          return [c[0], c[1], c[2], Math.round(200 * dioceseOpacity)];
+        },
+        getLineWidth: 2,
+        lineWidthUnits: "pixels",
+        pickable: true,
+        onHover: (info) => showTooltipDiocese(info),
+        updateTriggers: {
+          getFillColor: [dioceseOpacity, hiddenJurisdictions.size],
+          getLineColor: [dioceseOpacity, hiddenJurisdictions.size],
+        },
+      }));
+    }
+
+    // Tier 2: Parish territory polygons
+    if (showParishes && parishOpacity > 0) {
+      layers.push(new deck.GeoJsonLayer({
+        id: "parish-polys",
+        data: filterFC(parishPolyData),
+        filled: true,
+        stroked: true,
+        getFillColor: f => {
+          const c = f.properties.color;
+          return [c[0], c[1], c[2], Math.round(c[3] * parishOpacity)];
+        },
+        getLineColor: f => {
+          const c = f.properties.color;
+          return [c[0], c[1], c[2], Math.round(160 * parishOpacity)];
+        },
+        getLineWidth: 1,
+        lineWidthUnits: "pixels",
+        pickable: true,
+        onHover: (info) => showTooltipParishPoly(info),
+        updateTriggers: {
+          getFillColor: [parishOpacity, hiddenJurisdictions.size],
+          getLineColor: [parishOpacity, hiddenJurisdictions.size],
+        },
+      }));
+    }
+
+    // Points: parish markers
+    if (showPoints) {
+      layers.push(new deck.GeoJsonLayer({
+        id: "points",
+        data: filterFC(pointsData),
+        pointType: "circle",
+        filled: true,
+        stroked: true,
+        getPointRadius: currentZoom > 9 ? 120 : currentZoom > 6 ? 600 : 2000,
+        pointRadiusUnits: "meters",
+        pointRadiusMinPixels: 3,
+        pointRadiusMaxPixels: 12,
+        getFillColor: f => {
+          const c = f.properties.color;
+          return [c[0], c[1], c[2], 220];
+        },
+        getLineColor: [255, 255, 255, 180],
+        getLineWidth: 1,
+        lineWidthUnits: "pixels",
+        pickable: true,
+        onHover: (info) => showTooltipPoint(info),
+        updateTriggers: {
+          getPointRadius: [currentZoom],
+          getFillColor: [hiddenJurisdictions.size],
+        },
+      }));
+    }
+
+    // Labels: parish names at high zoom
+    if (showLabels && pointsData && currentZoom > 9) {
+      const filteredPoints = filterFC(pointsData);
+      layers.push(new deck.TextLayer({
+        id: "labels",
+        data: filteredPoints.features,
+        getPosition: f => f.geometry.coordinates,
+        getText: f => f.properties.name,
+        getSize: 12,
+        getColor: [255, 255, 255, 200],
+        getAngle: 0,
+        getTextAnchor: "start",
+        getAlignmentBaseline: "center",
+        getPixelOffset: [10, 0],
+        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        fontWeight: 500,
+        outlineWidth: 2,
+        outlineColor: [26, 35, 50, 200],
+        billboard: false,
+        sizeUnits: "pixels",
+        pickable: false,
+      }));
+    }
+
+    deckInstance.setProps({ layers });
+  }
+
+  // ── Tooltip handlers ────────────────────────
+  function showTooltipDiocese(info) {
+    if (!info.object) { tooltip.style.display = "none"; return; }
+    const p = info.object.properties;
+    tooltip.innerHTML =
+      `<strong>${p.diocese || "Unknown Diocese"}</strong>` +
+      `<div class="tt-row"><span class="tt-label">Jurisdiction:</span> ${abbreviateJurisdiction(p.jurisdiction)}</div>`;
+    positionTooltip(info.x, info.y);
+  }
+
+  function showTooltipParishPoly(info) {
+    if (!info.object) { tooltip.style.display = "none"; return; }
+    const p = info.object.properties;
+    tooltip.innerHTML =
+      `<strong>${p.diocese || "Unknown"}</strong>` +
+      `<div class="tt-row"><span class="tt-label">Territory:</span> ${p.entityId}</div>` +
+      `<div class="tt-row"><span class="tt-label">Jurisdiction:</span> ${abbreviateJurisdiction(p.jurisdiction)}</div>`;
+    positionTooltip(info.x, info.y);
+  }
+
+  function showTooltipPoint(info) {
+    if (!info.object) { tooltip.style.display = "none"; return; }
+    const p = info.object.properties;
+    let html = `<strong>${p.name}</strong>`;
+    if (p.city || p.state) html += `<div class="tt-row"><span class="tt-label">Location:</span> ${[p.city, p.state].filter(Boolean).join(", ")}</div>`;
+    html += `<div class="tt-row"><span class="tt-label">Diocese:</span> ${p.diocese || "—"}</div>`;
+    html += `<div class="tt-row"><span class="tt-label">Jurisdiction:</span> ${abbreviateJurisdiction(p.jurisdiction)}</div>`;
+    if (p.clergy) html += `<div class="tt-row"><span class="tt-label">Clergy:</span> ${p.clergy}</div>`;
+    if (p.phone) html += `<div class="tt-row"><span class="tt-label">Phone:</span> ${p.phone}</div>`;
+    if (p.clusterId) html += `<div class="tt-row"><span class="tt-label">Cluster:</span> #${p.clusterId} (unified with nearby parishes)</div>`;
+    tooltip.innerHTML = html;
+    positionTooltip(info.x, info.y);
+  }
+
+  function positionTooltip(x, y) {
+    tooltip.style.display = "block";
+    const pad = 12;
+    const rect = document.getElementById("map-container").getBoundingClientRect();
+    let left = x + pad;
+    let top = y + pad;
+    // Keep within viewport
+    if (left + 320 > rect.width) left = x - 320 - pad;
+    if (top + 200 > rect.height) top = y - 200 - pad;
+    tooltip.style.left = Math.max(0, left) + "px";
+    tooltip.style.top = Math.max(0, top) + "px";
+  }
+
+  // Hide tooltip when mouse leaves map
+  document.getElementById("map").addEventListener("mouseleave", () => {
+    tooltip.style.display = "none";
+  });
+})();
+</script>
+</body>
+</html>

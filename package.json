@@ -1,0 +1,36 @@
+{
+  "name": "parish-scraper",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "scrape": "node index.js",
+    "scrape:chicago": "node index.js --source chicago",
+    "scrape:assembly": "node index.js --source assembly",
+    "scrape:oca": "node index.js --source oca",
+    "scrape:uoc": "node index.js --source uoc",
+    "scrape:ea-diocese": "node index.js --source ea-diocese",
+    "scrape:goarch": "node index.js --source goarch",
+    "scrape:antiochian": "node index.js --source antiochian",
+    "scrape:serbian": "node index.js --source serbian",
+    "scrape:romanian": "node index.js --source romanian",
+    "scrape:acrod": "node index.js --source acrod",
+    "scrape:bulgarian": "node index.js --source bulgarian",
+    "scrape:orthodox-world": "node index.js --source orthodox-world",
+    "serve": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@turf/turf": "^7.3.4",
+    "axios": "^1.13.5",
+    "better-sqlite3": "^12.6.2",
+    "cheerio": "^1.2.0",
+    "csv-writer": "^1.6.0",
+    "d3-delaunay": "^6.0.4",
+    "express": "^5.2.1"
+  }
+}
