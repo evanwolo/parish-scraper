@@ -1,9 +1,15 @@
 {
   "name": "parish-scraper",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Comprehensive Orthodox parish data scraper and directory",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
     "scrape": "node index.js",
     "scrape:all": "node scrape-all.js",
     "scrape:all:retry": "node scrape-all.js --retry",
@@ -25,10 +31,18 @@
     "rebuild": "node src/import.js --fresh",
     "serve": "node server.js",
     "compute": "node src/compute-map.js",
+    "postinstall": "npm run setup:db || true",
+    "setup:db": "node -e \"const { initSchema, migrate } = require('./src/db'); try { initSchema(); migrate(); console.log('Database initialized'); } catch (e) { console.log('DB setup skipped:', e.message); }\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "orthodox",
+    "parish",
+    "scraper",
+    "directory",
+    "church"
+  ],
+  "author": "Evan Wologodzew",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
