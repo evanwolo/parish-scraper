@@ -42,6 +42,7 @@ function dedupKey(record) {
   const name = normName(record.name || record.parish || "");
   const city = norm(record.city || "");
   const state = norm(record.state || "");
+  if (!name) return "";
   // Use name|city as primary key; include state only when city is empty
   // to avoid splitting records that have city in one source but not another.
   return city ? `${name}|${city}` : `${name}||${state}`;
@@ -117,6 +118,57 @@ function mergeGroup(records) {
   return merged;
 }
 
+// ── Coordinate-based deduplication ────────────────────────────────────
+
+/**
+ * Return a coordinate key for a record.
+ * Used to identify records at the same physical location.
+ */
+function coordKey(record) {
+  if (!record.lat || !record.lng) return "";
+  // Round to 4 decimal places (~11m precision) to account for minor geocoding variations
+  const lat = parseFloat(record.lat).toFixed(4);
+  const lng = parseFloat(record.lng).toFixed(4);
+  return `${lat}|${lng}`;
+}
+
+/**
+ * Second pass: deduplicate by coordinates.
+ * Merges records that share the same location (within ~11m).
+ */
+function deduplicateByCoordinates(records) {
+  const groups = new Map();
+
+  for (const rec of records) {
+    const key = coordKey(rec);
+    if (!key) {
+      // No coordinates, keep as-is
+      if (!groups.has("")) groups.set("", []);
+      groups.get("").push([rec]);
+    } else {
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push([rec]);
+    }
+  }
+
+  const unique = [];
+  let mergedCount = 0;
+
+  for (const [, groups_or_records] of groups) {
+    // Groups without coordinates are single-record arrays
+    for (const group of groups_or_records) {
+      if (group.length === 1) {
+        unique.push(group[0]);
+      } else {
+        unique.push(mergeGroup(group));
+        mergedCount += group.length - 1;
+      }
+    }
+  }
+
+  return { unique, mergedCount };
+}
+
 // ── Public API ────────────────────────────────────────────────────────
 
 /**
@@ -129,22 +181,49 @@ function mergeGroup(records) {
 function deduplicate(records) {
   const groups = new Map();
 
+  // First pass: deduplicate by name + city + state
   for (const rec of records) {
     const key = dedupKey(rec);
-    if (!key || key === "|" || key === "||") continue; // skip blank names
+    if (!key) continue; // skip blank names
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(rec);
   }
 
-  const unique = [];
-  let mergedCount = 0;
+  let deduped1 = [];
+  let mergedPass1 = 0;
 
   for (const [, group] of groups) {
+    if (group.length === 1) {
+      deduped1.push(group[0]);
+    } else {
+      deduped1.push(mergeGroup(group));
+      mergedPass1 += group.length - 1;
+    }
+  }
+
+  // Second pass: deduplicate by coordinates
+  const coordGroups = new Map();
+  const noCoords = [];
+
+  for (const rec of deduped1) {
+    const key = coordKey(rec);
+    if (!key) {
+      noCoords.push(rec);
+    } else {
+      if (!coordGroups.has(key)) coordGroups.set(key, []);
+      coordGroups.get(key).push(rec);
+    }
+  }
+
+  let unique = noCoords;
+  let mergedPass2 = 0;
+
+  for (const [, group] of coordGroups) {
     if (group.length === 1) {
       unique.push(group[0]);
     } else {
       unique.push(mergeGroup(group));
-      mergedCount += group.length - 1; // how many extra records were folded in
+      mergedPass2 += group.length - 1;
     }
   }
 
@@ -153,7 +232,7 @@ function deduplicate(records) {
     stats: {
       total: records.length,
       unique: unique.length,
-      merged: mergedCount,
+      merged: mergedPass1 + mergedPass2,
     },
   };
 }

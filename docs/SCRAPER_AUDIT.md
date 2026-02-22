@@ -113,7 +113,7 @@ Based on current Assembly of Bishops cross-reference data:
 ### Immediate Actions: ✅ Complete
 
 1. ✅ All 12 primary scrapers are implemented
-2. ✅ `scrape-all.js` comprehensive script created
+2. ✅ `scrape.js` unified scraper created
 3. ✅ Deduplication and cross-referencing in place
 4. ✅ Source priority system implemented
 

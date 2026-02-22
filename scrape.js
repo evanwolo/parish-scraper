@@ -1,153 +1,199 @@
 /**
- * Scrape All Sources – Comprehensive Orthodox Parish Data Collection
+ * Parish Scraper – Unified Runner
  *
- * This script runs ALL available scrapers in sequence, collects data from
- * every Orthodox jurisdiction, deduplicates, and generates a comprehensive
- * all-parishes dataset.
+ * Scrapes Orthodox parish directories from multiple sources and writes
+ * per-source CSV/JSON files plus an optional merged "all-parishes" file.
  *
  * Usage:
- *   node scrape-all.js              # run all scrapers
- *   node scrape-all.js --retry      # retry failed scrapers once
- *   node scrape-all.js --skip-merge # skip final merge (keep individual files only)
+ *   node scrape.js                       # scrape ALL sources
+ *   node scrape.js --source oca          # scrape one source by key
+ *   node scrape.js --source all --retry  # retry failed scrapers
+ *   node scrape.js --skip-merge          # skip merged output
  */
 
-const path = require("path");
 const { sanitizeRecord } = require("./src/sanitize");
 
-// ── Complete Registry of All Available Scrapers ──────────────────────
-const ALL_SCRAPERS = {
+const SCRAPER_TIMEOUT_MS = Number(process.env.SCRAPER_TIMEOUT_MS) || 5 * 60_000;
+
+const SCRAPERS = {
   // Primary jurisdictions (largest in North America)
-  oca: require("./src/scrapers/oca"),
-  chicago: require("./src/scrapers/chicago-rocor"),
-  goarch: require("./src/scrapers/goarch"),
-  antiochian: require("./src/scrapers/antiochian"),
-  
+  oca: "./src/scrapers/oca",
+  chicago: "./src/scrapers/chicago-rocor",
+  goarch: "./src/scrapers/goarch",
+  antiochian: "./src/scrapers/antiochian",
+
   // Other canonical jurisdictions
-  serbian: require("./src/scrapers/serbian"),
-  romanian: require("./src/scrapers/romanian"),
-  bulgarian: require("./src/scrapers/bulgarian"),
-  acrod: require("./src/scrapers/acrod"),
-  uoc: require("./src/scrapers/uoc-usa"),
-  "ea-diocese": require("./src/scrapers/ea-diocese"),
-  
+  serbian: "./src/scrapers/serbian",
+  romanian: "./src/scrapers/romanian",
+  bulgarian: "./src/scrapers/bulgarian",
+  acrod: "./src/scrapers/acrod",
+  uoc: "./src/scrapers/uoc-usa",
+  "ea-diocese": "./src/scrapers/ea-diocese",
+
   // Cross-reference & supplementary sources
-  assembly: require("./src/scrapers/assembly-of-bishops"),
-  "orthodox-world": require("./src/scrapers/orthodox-world"),
+  assembly: "./src/scrapers/assembly-of-bishops",
+  "orthodox-world": "./src/scrapers/orthodox-world",
+
+  // ═══════════════════════════════════════════════════════════
+  // EUROPEAN ORTHODOX CHURCHES
+  // ═══════════════════════════════════════════════════════════
+
+  // Eastern Europe
+  "romanian-europe": "./src/scrapers/romanian-orthodox-europe",
+  "serbian-europe": "./src/scrapers/serbian-orthodox-europe",
+  "ukrainian-europe": "./src/scrapers/ukrainian-orthodox-europe",
+  "russian-europe": "./src/scrapers/russian-orthodox-europe",
+  "warsaw-orthodox": "./src/scrapers/warsaw-orthodox",
+
+  // Southern & East
+  "church-of-greece": "./src/scrapers/church-of-greece",
+  "georgian-orthodox": "./src/scrapers/georgian-orthodox",
 };
 
-// ── Configuration ─────────────────────────────────────────────────────
 const RETRY_FAILED_SCRAPERS = process.argv.includes("--retry");
 const SKIP_MERGE = process.argv.includes("--skip-merge");
 
-// ── Main Execution ────────────────────────────────────────────────────
+function getRequestedSources() {
+  const args = process.argv.slice(2);
+  const idx = args.indexOf("--source");
+  if (idx !== -1 && args[idx + 1]) {
+    const key = args[idx + 1];
+    if (key === "all") return Object.keys(SCRAPERS);
+    if (!SCRAPERS[key]) {
+      console.error(
+        `Unknown source "${key}". Available: ${Object.keys(SCRAPERS).join(", ")}`
+      );
+      process.exitCode = 1;
+      return [];
+    }
+    return [key];
+  }
+  return Object.keys(SCRAPERS);
+}
+
 async function scrapeAll() {
+  const sources = getRequestedSources();
+  if (sources.length === 0) return;
+
   console.log("\n╔═══════════════════════════════════════════════════════════════╗");
   console.log("║  Orthodox Parish Scraper – COMPREHENSIVE DATA COLLECTION     ║");
   console.log("╚═══════════════════════════════════════════════════════════════╝\n");
-  console.log(`Sources to scrape: ${Object.keys(ALL_SCRAPERS).length}`);
+  console.log(`Sources to scrape: ${sources.length}`);
   console.log(`Retry on failure: ${RETRY_FAILED_SCRAPERS ? "YES" : "NO"}`);
   console.log(`Skip merge: ${SKIP_MERGE ? "YES" : "NO"}\n`);
 
   const allData = [];
   const summary = [];
   const failed = [];
+  let uniqueData = null;
 
-  // ── Phase 1: Run all scrapers ───────────────────────────────────────
-  console.log("═══ PHASE 1: SCRAPING ALL SOURCES ═══\n");
+  const runWithTimeout = async (label, fn) => {
+    let timeoutId;
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(new Error(`${label} timed out after ${SCRAPER_TIMEOUT_MS}ms`));
+      }, SCRAPER_TIMEOUT_MS);
+    });
 
-  for (const [key, scraper] of Object.entries(ALL_SCRAPERS)) {
+    try {
+      return await Promise.race([fn(), timeoutPromise]);
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  };
+
+  console.log("═══ PHASE 1: SCRAPING SOURCES ═══\n");
+
+  for (const key of sources) {
     console.log(`\n┌─ ${key.toUpperCase()} ${"─".repeat(60 - key.length)}`);
     const start = Date.now();
-    
+
     try {
-      const raw = await scraper.run();
+      const scraper = require(SCRAPERS[key]);
+      const raw = await runWithTimeout(key, () => scraper.run());
       const data = raw.map((r) => sanitizeRecord(r));
       const elapsed = ((Date.now() - start) / 1000).toFixed(1);
-      
+
       console.log(`└─ ✓ ${key}: ${data.length} parishes (${elapsed}s)`);
-      summary.push({ 
-        source: key, 
-        count: data.length, 
-        time: `${elapsed}s`, 
-        status: "✓ SUCCESS" 
+      summary.push({
+        source: key,
+        count: data.length,
+        time: `${elapsed}s`,
+        status: "✓ SUCCESS",
       });
       allData.push(...data);
-      
     } catch (err) {
       const elapsed = ((Date.now() - start) / 1000).toFixed(1);
       console.error(`└─ ✗ ${key} FAILED: ${err.message} (${elapsed}s)`);
-      summary.push({ 
-        source: key, 
-        count: 0, 
-        time: `${elapsed}s`, 
-        status: `✗ ${err.message.substring(0, 30)}` 
+      summary.push({
+        source: key,
+        count: 0,
+        time: `${elapsed}s`,
+        status: `✗ ${err.message.substring(0, 30)}`,
       });
-      failed.push({ key, scraper, error: err });
+      failed.push({ key, error: err });
     }
   }
 
-  // ── Phase 2: Retry failed scrapers (if enabled) ─────────────────────
   if (RETRY_FAILED_SCRAPERS && failed.length > 0) {
     console.log("\n\n═══ PHASE 2: RETRYING FAILED SCRAPERS ═══\n");
-    
+
     const stillFailed = [];
-    for (const { key, scraper } of failed) {
+    for (const { key } of failed) {
       console.log(`\n┌─ RETRY: ${key.toUpperCase()} ${"─".repeat(55 - key.length)}`);
       const start = Date.now();
-      
+
       try {
-        const raw = await scraper.run();
+        const scraper = require(SCRAPERS[key]);
+        const raw = await runWithTimeout(key, () => scraper.run());
         const data = raw.map((r) => sanitizeRecord(r));
         const elapsed = ((Date.now() - start) / 1000).toFixed(1);
-        
+
         console.log(`└─ ✓ ${key}: ${data.length} parishes (${elapsed}s) [RETRY SUCCESS]`);
-        
-        // Update summary
-        const summaryEntry = summary.find(s => s.source === key);
+
+        const summaryEntry = summary.find((s) => s.source === key);
         if (summaryEntry) {
           summaryEntry.count = data.length;
           summaryEntry.time = `${elapsed}s`;
           summaryEntry.status = "✓ SUCCESS (retry)";
         }
         allData.push(...data);
-        
       } catch (err) {
         const elapsed = ((Date.now() - start) / 1000).toFixed(1);
         console.error(`└─ ✗ ${key} STILL FAILED: ${err.message} (${elapsed}s)`);
         stillFailed.push(key);
       }
     }
-    
+
     if (stillFailed.length > 0) {
       console.log(`\n⚠  ${stillFailed.length} source(s) failed after retry: ${stillFailed.join(", ")}`);
     }
   }
 
-  // ── Phase 3: Merge and deduplicate ──────────────────────────────────
-  if (!SKIP_MERGE && allData.length > 0) {
+  if (!SKIP_MERGE && sources.length > 1 && allData.length > 0) {
     console.log("\n\n═══ PHASE 3: MERGING & DEDUPLICATING ═══\n");
-    
+
     const { writeCSV, writeJSON } = require("./src/utils");
     const { deduplicate } = require("./src/dedup");
 
     const { unique, stats } = deduplicate(allData);
+    uniqueData = unique;
     console.log(`[dedup] ${stats.total} total records → ${stats.unique} unique parishes`);
     console.log(`        ${stats.merged} duplicates merged across sources`);
 
     const columns = [...new Set(unique.flatMap(Object.keys))];
     const csvPath = await writeCSV("all-parishes.csv", unique, columns);
     const jsonPath = writeJSON("all-parishes.json", unique);
-    
+
     console.log(`\n[output] ${csvPath}`);
     console.log(`[output] ${jsonPath}`);
   }
 
-  // ── Phase 4: Summary Report ─────────────────────────────────────────
   console.log("\n\n═══ SUMMARY ═══════════════════════════════════════════════════\n");
   console.log("┌──────────────────────┬────────┬─────────┬────────────────────────────┐");
   console.log("│ Source               │  Count │  Time   │ Status                     │");
   console.log("├──────────────────────┼────────┼─────────┼────────────────────────────┤");
-  
+
   for (const s of summary) {
     const src = s.source.padEnd(20);
     const cnt = String(s.count).padStart(6);
@@ -155,49 +201,47 @@ async function scrapeAll() {
     const st = s.status.substring(0, 26).padEnd(26);
     console.log(`│ ${src} │ ${cnt} │ ${tm} │ ${st} │`);
   }
-  
+
   console.log("└──────────────────────┴────────┴─────────┴────────────────────────────┘");
-  
+
   const totalCount = summary.reduce((sum, s) => sum + s.count, 0);
-  const successCount = summary.filter(s => s.status.startsWith("✓")).length;
-  const failCount = summary.filter(s => s.status.startsWith("✗")).length;
-  
+  const successCount = summary.filter((s) => s.status.startsWith("✓")).length;
+  const failCount = summary.filter((s) => s.status.startsWith("✗")).length;
+
   console.log(`\nTotal parishes collected: ${totalCount}`);
-  console.log(`Successful sources: ${successCount}/${Object.keys(ALL_SCRAPERS).length}`);
-  
+  console.log(`Successful sources: ${successCount}/${sources.length}`);
+
   if (failCount > 0) {
     console.log(`\n⚠  WARNING: ${failCount} source(s) failed`);
-    const failedSources = summary.filter(s => s.status.startsWith("✗")).map(s => s.source);
+    const failedSources = summary.filter((s) => s.status.startsWith("✗")).map((s) => s.source);
     console.log(`   Failed: ${failedSources.join(", ")}`);
     console.log(`   Tip: Run with --retry flag to retry failed scrapers\n`);
   }
 
-  // ── Coverage Analysis ───────────────────────────────────────────────
-  if (allData.length > 0) {
+  const coverageData = uniqueData || allData;
+  if (coverageData.length > 0) {
     console.log("\n═══ COVERAGE ANALYSIS ═════════════════════════════════════════\n");
-    
-    // Count by jurisdiction
+
     const jurisdictions = {};
-    allData.forEach(p => {
+    coverageData.forEach((p) => {
       const j = p.jurisdiction || "Unknown";
       jurisdictions[j] = (jurisdictions[j] || 0) + 1;
     });
-    
+
     console.log("Parishes by jurisdiction:");
     Object.entries(jurisdictions)
       .sort((a, b) => b[1] - a[1])
       .forEach(([j, count]) => {
         console.log(`  ${String(count).padStart(4)} - ${j}`);
       });
-    
-    // Count by state (US only)
+
     const states = {};
-    allData.forEach(p => {
+    coverageData.forEach((p) => {
       if (p.country === "USA" && p.state) {
         states[p.state] = (states[p.state] || 0) + 1;
       }
     });
-    
+
     console.log(`\nParishes by state (top 10):`);
     Object.entries(states)
       .sort((a, b) => b[1] - a[1])
@@ -205,18 +249,25 @@ async function scrapeAll() {
       .forEach(([state, count]) => {
         console.log(`  ${String(count).padStart(4)} - ${state}`);
       });
-    
-    // Data quality metrics
-    const withCoords = allData.filter(p => p.lat && p.lng).length;
-    const withPhone = allData.filter(p => p.phone).length;
-    const withWebsite = allData.filter(p => p.website).length;
-    const withDiocese = allData.filter(p => p.diocese).length;
-    
+
+    const withCoords = coverageData.filter((p) => p.lat && p.lng).length;
+    const withPhone = coverageData.filter((p) => p.phone).length;
+    const withWebsite = coverageData.filter((p) => p.website).length;
+    const withDiocese = coverageData.filter((p) => p.diocese).length;
+
     console.log(`\nData quality metrics:`);
-    console.log(`  Geocoded (lat/lng): ${withCoords} (${((withCoords/allData.length)*100).toFixed(1)}%)`);
-    console.log(`  Has phone: ${withPhone} (${((withPhone/allData.length)*100).toFixed(1)}%)`);
-    console.log(`  Has website: ${withWebsite} (${((withWebsite/allData.length)*100).toFixed(1)}%)`);
-    console.log(`  Has diocese: ${withDiocese} (${((withDiocese/allData.length)*100).toFixed(1)}%)`);
+    console.log(
+      `  Geocoded (lat/lng): ${withCoords} (${((withCoords / coverageData.length) * 100).toFixed(1)}%)`
+    );
+    console.log(
+      `  Has phone: ${withPhone} (${((withPhone / coverageData.length) * 100).toFixed(1)}%)`
+    );
+    console.log(
+      `  Has website: ${withWebsite} (${((withWebsite / coverageData.length) * 100).toFixed(1)}%)`
+    );
+    console.log(
+      `  Has diocese: ${withDiocese} (${((withDiocese / coverageData.length) * 100).toFixed(1)}%)`
+    );
   }
 
   console.log("\n╔═══════════════════════════════════════════════════════════════╗");
@@ -224,13 +275,12 @@ async function scrapeAll() {
   console.log("╚═══════════════════════════════════════════════════════════════╝\n");
 
   if (failCount > 0) {
-    process.exit(1);
+    process.exitCode = 1;
   }
 }
 
-// ── Run ───────────────────────────────────────────────────────────────
 scrapeAll().catch((err) => {
   console.error("\n✗ FATAL ERROR:", err.message);
   console.error(err.stack);
-  process.exit(1);
+  process.exitCode = 1;
 });

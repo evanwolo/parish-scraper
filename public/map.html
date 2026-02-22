@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Jurisdiction Map — Orthodox Parish Directory</title>
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+
   <!-- MapLibre GL (free, no API key) -->
   <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
@@ -26,15 +30,19 @@
       --text-muted: #666;
       --border: #ddd;
       --radius: 6px;
+      --font-body: "Space Grotesk", "Segoe UI", sans-serif;
+      --font-display: "Fraunces", Georgia, serif;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { width: 100%; height: 100%; overflow: hidden; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+      font-family: var(--font-body);
       background: #111;
       color: var(--text);
+      display: flex;
+      flex-direction: column;
     }
 
     /* ── Header ─────────────────────────────── */
@@ -54,6 +62,7 @@
       font-size: 1.1rem;
       font-weight: 600;
       letter-spacing: 0.02em;
+      font-family: var(--font-display);
     }
     header h1 span { color: var(--gold); }
     .header-right {
@@ -82,7 +91,8 @@
     #map-container {
       position: relative;
       width: 100%;
-      height: calc(100vh - 44px);
+      flex: 1;
+      min-height: 0;
     }
     #map { width: 100%; height: 100%; }
 
@@ -315,6 +325,20 @@
       font-family: monospace;
       font-size: 0.7em;
       color: #fff;
+    }
+
+    @media (max-width: 900px) {
+      #legend, .controls-panel { max-width: 46vw; }
+    }
+    @media (max-width: 640px) {
+      header { padding: 0.6rem 1rem; }
+      #legend, .controls-panel {
+        font-size: 0.7rem;
+        padding: 8px 10px;
+        max-width: 90vw;
+        max-height: 40vh;
+      }
+      .header-stats { display: none; }
     }
 
     /* ── Tooltip ─────────────────────────────── */
@@ -702,6 +726,69 @@
       transform: translateY(-1px);
     }
 
+    /* ── Clergy styling ─────────────────────── */
+    .clergy-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .clergy-member {
+      background: rgba(255,255,255,0.06);
+      border-left: 3px solid var(--gold);
+      border-radius: 4px;
+      padding: 8px 10px;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+    .clergy-rank {
+      color: var(--gold);
+      font-weight: 600;
+      display: inline;
+      margin-right: 4px;
+    }
+    .clergy-name {
+      color: #dde;
+      font-weight: 500;
+    }
+    .clergy-role {
+      color: #8899aa;
+      font-size: 0.8rem;
+      font-style: italic;
+      display: block;
+      margin-top: 2px;
+    }
+
+    .tt-clergy-container {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .tt-clergy-member {
+      background: rgba(255,255,255,0.05);
+      border-left: 2px solid var(--gold);
+      padding: 6px 8px;
+      border-radius: 3px;
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+    .tt-clergy-rank {
+      color: var(--gold);
+      font-weight: 600;
+      display: inline;
+      margin-right: 3px;
+    }
+    .tt-clergy-name {
+      color: #dde;
+      font-weight: 500;
+    }
+    .tt-clergy-role {
+      color: #7899bb;
+      font-size: 0.75rem;
+      font-style: italic;
+      display: block;
+      margin-top: 1px;
+    }
+
     /* ── Loading overlay ─────────────────────── */
     #loading-overlay {
       position: absolute;
@@ -724,6 +811,220 @@
       margin-right: 0.5rem;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Splash Modal ───────────────────────────── */
+    #splash-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.3s;
+    }
+    #splash-overlay.hidden {
+      display: none;
+    }
+    #splash-content {
+      background: linear-gradient(135deg, rgba(26,35,50,0.99) 0%, rgba(20,25,40,0.99) 100%);
+      border: 1px solid rgba(197,163,68,0.5);
+      border-radius: 16px;
+      max-width: 720px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 80px rgba(0,0,0,0.9);
+      color: #fff;
+      animation: slideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      padding: 0;
+    }
+    #splash-header {
+      background: linear-gradient(135deg, rgba(197,163,68,0.2) 0%, rgba(197,163,68,0.1) 100%);
+      border-bottom: 1px solid rgba(197,163,68,0.4);
+      padding: 30px 32px;
+      border-radius: 16px 16px 0 0;
+      text-align: center;
+    }
+    #splash-title {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--gold);
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+    #splash-subtitle {
+      font-size: 0.95rem;
+      color: #8899aa;
+      line-height: 1.5;
+    }
+    #splash-body {
+      padding: 32px;
+      font-size: 0.9rem;
+      line-height: 1.7;
+    }
+    .splash-section {
+      margin-bottom: 28px;
+    }
+    .splash-section:last-child {
+      margin-bottom: 0;
+    }
+    .splash-section-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--gold);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: 0.02em;
+    }
+    .splash-section-icon {
+      font-size: 1.4rem;
+      display: flex;
+      align-items: center;
+      opacity: 0.9;
+    }
+    .splash-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 10px;
+      align-items: flex-start;
+    }
+    .splash-row:last-child {
+      margin-bottom: 0;
+    }
+    .splash-bullet {
+      color: #7899bb;
+      flex-shrink: 0;
+      font-weight: 600;
+      min-width: fit-content;
+    }
+    .splash-text {
+      flex: 1;
+      color: #dde;
+      line-height: 1.6;
+    }
+    .splash-kbd {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #fff;
+      padding: 2px 7px;
+      border-radius: 3px;
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin: 0 3px;
+      letter-spacing: 0.02em;
+    }
+    .splash-tip {
+      background: rgba(197,163,68,0.1);
+      border-left: 3px solid rgba(197,163,68,0.6);
+      padding: 12px 14px;
+      border-radius: 6px;
+      margin: 12px 0;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: #dde;
+    }
+    .splash-tip strong {
+      color: var(--gold);
+      display: block;
+      margin-bottom: 4px;
+      font-size: 0.9rem;
+    }
+    .splash-features {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 12px 0;
+    }
+    @media (max-width: 600px) {
+      .splash-features {
+        grid-template-columns: 1fr;
+      }
+    }
+    .splash-feature-card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      color: #dde;
+    }
+    .splash-feature-card strong {
+      color: var(--gold);
+      display: block;
+      margin-bottom: 4px;
+      font-size: 0.9rem;
+    }
+    #splash-footer {
+      padding: 20px 32px;
+      border-top: 1px solid rgba(255,255,255,0.12);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .splash-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: #8899aa;
+    }
+    .splash-checkbox input[type="checkbox"] {
+      accent-color: var(--gold);
+      cursor: pointer;
+    }
+    .splash-button-group {
+      display: flex;
+      gap: 8px;
+    }
+    #splash-close-btn {
+      padding: 10px 20px;
+      background: var(--gold);
+      color: var(--navy);
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+      letter-spacing: 0.02em;
+    }
+    #splash-close-btn:hover {
+      background: #ddb855;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(197, 163, 68, 0.3);
+    }
+    #splash-close-btn:active {
+      transform: translateY(0);
+    }
+    #splash-help-btn {
+      padding: 10px 20px;
+      background: rgba(197,163,68,0.15);
+      color: var(--gold);
+      border: 1px solid rgba(197,163,68,0.4);
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    #splash-help-btn:hover {
+      background: rgba(197,163,68,0.25);
+      border-color: rgba(197,163,68,0.6);
+    }
   </style>
 </head>
 <body>
@@ -819,11 +1120,176 @@
       <div id="modal-body"></div>
     </div>
   </div>
+
+  <!-- Splash Modal -->
+  <div id="splash-overlay">
+    <div id="splash-content">
+      <div id="splash-header">
+        <div id="splash-title">☦ Orthodox Jurisdiction Map</div>
+        <div id="splash-subtitle">Explore the geographic structure and boundaries of Orthodox parishes, dioceses, and patriarchates across North America</div>
+      </div>
+      <div id="splash-body">
+        <div class="splash-section">
+          <div class="splash-section-title">
+            <span class="splash-section-icon">🗺️</span>
+            What This Map Shows
+          </div>
+          <div class="splash-row">
+            <div class="splash-text">This interactive map displays the territorial jurisdiction of Orthodox Christian parishes across North America. Each colored region represents a diocese or jurisdiction, and you can explore parish locations, boundaries, diocesan organization, and hierarchical relationships.</div>
+          </div>
+        </div>
+
+        <div class="splash-section">
+          <div class="splash-section-title">
+            <span class="splash-section-icon">🎮</span>
+            How to Navigate
+          </div>
+          <div class="splash-row">
+            <div class="splash-bullet">🖱️</div>
+            <div class="splash-text"><strong>Pan & Zoom:</strong> Click and drag to pan, use scroll wheel to zoom in/out</div>
+          </div>
+          <div class="splash-row">
+            <div class="splash-bullet">👆</div>
+            <div class="splash-text"><strong>Select:</strong> Click on a diocese boundary or parish marker to view details</div>
+          </div>
+          <div class="splash-row">
+            <div class="splash-bullet">🔍</div>
+            <div class="splash-text"><strong>Search:</strong> Use <span class="splash-kbd">/</span> to focus the search box, or type directly</div>
+          </div>
+        </div>
+
+        <div class="splash-section">
+          <div class="splash-section-title">
+            <span class="splash-section-icon">⚙️</span>
+            Controls & Filters
+          </div>
+          <div class="splash-features">
+            <div class="splash-feature-card">
+              <strong>Search</strong>
+              Find parishes by name, location, or diocese
+            </div>
+            <div class="splash-feature-card">
+              <strong>Filters</strong>
+              Filter by diocese, patriarchate, state, or importance (Cathedral, Monastery, etc.)
+            </div>
+            <div class="splash-feature-card">
+              <strong>Visualization</strong>
+              Toggle diocese boundaries, parish territories, markers, and labels
+            </div>
+            <div class="splash-feature-card">
+              <strong>Statistics</strong>
+              View counts of visible parishes, dioceses, and clustering statistics
+            </div>
+          </div>
+        </div>
+
+        <div class="splash-tip">
+          <strong>💡 Pro Tip</strong>
+          Click on the legend (left side) to show/hide entire jurisdictions at once. Use the controls panel on the right to fine-tune what you're viewing.
+        </div>
+
+        <div class="splash-section">
+          <div class="splash-section-title">
+            <span class="splash-section-icon">⌨️</span>
+            Keyboard Shortcuts
+          </div>
+          <div class="splash-row">
+            <div class="splash-bullet"><span class="splash-kbd">/</span></div>
+            <div class="splash-text">Focus the search box</div>
+          </div>
+          <div class="splash-row">
+            <div class="splash-bullet"><span class="splash-kbd">Esc</span></div>
+            <div class="splash-text">Clear active filters and reset search</div>
+          </div>
+          <div class="splash-row">
+            <div class="splash-bullet"><span class="splash-kbd">?</span></div>
+            <div class="splash-text">Show/hide keyboard shortcuts hint</div>
+          </div>
+        </div>
+
+        <div class="splash-section">
+          <div class="splash-section-title">
+            <span class="splash-section-icon">📊</span>
+            Parish Importance Levels
+          </div>
+          <div class="splash-row">
+            <div class="splash-bullet">🏛️</div>
+            <div class="splash-text"><strong>Cathedrals:</strong> Diocesan seats and major cathedral churches</div>
+          </div>
+          <div class="splash-row">
+            <div class="splash-bullet">🧘</div>
+            <div class="splash-text"><strong>Monasteries:</strong> Monastic communities</div>
+          </div>
+          <div class="splash-row">
+            <div class="splash-bullet">🎓</div>
+            <div class="splash-text"><strong>Seminaries:</strong> Theological educational institutions</div>
+          </div>
+          <div class="splash-row">
+            <div class="splash-bullet">⭐</div>
+            <div class="splash-text"><strong>Notable:</strong> Historically or structurally significant parishes</div>
+          </div>
+        </div>
+      </div>
+      <div id="splash-footer">
+        <label class="splash-checkbox">
+          <input type="checkbox" id="splash-no-show" />
+          Don't show this again
+        </label>
+        <div class="splash-button-group">
+          <button id="splash-help-btn">Full Help</button>
+          <button id="splash-close-btn">Explore Map</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
 (function () {
   console.log("Map initialization script started");
+  
+  // ── Splash Modal ────────────────────────────
+  const splashOverlay = document.getElementById("splash-overlay");
+  const splashCloseBtn = document.getElementById("splash-close-btn");
+  const splashHelpBtn = document.getElementById("splash-help-btn");
+  const splashNoShow = document.getElementById("splash-no-show");
+  const SPLASH_DISMISSED_KEY = "orthocalendar_splash_dismissed";
+
+  function closeSplash() {
+    splashOverlay.classList.add("hidden");
+    if (splashNoShow.checked) {
+      localStorage.setItem(SPLASH_DISMISSED_KEY, "true");
+    }
+  }
+
+  function showSplash() {
+    if (!localStorage.getItem(SPLASH_DISMISSED_KEY)) {
+      splashOverlay.classList.remove("hidden");
+    } else {
+      splashOverlay.classList.add("hidden");
+    }
+  }
+
+  splashCloseBtn.addEventListener("click", closeSplash);
+  splashHelpBtn.addEventListener("click", () => {
+    closeSplash();
+    // Could open a more detailed help modal in the future
+  });
+
+  splashOverlay.addEventListener("click", (e) => {
+    if (e.target === splashOverlay) {
+      closeSplash();
+    }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !splashOverlay.classList.contains("hidden")) {
+      closeSplash();
+    }
+  });
+
+  // Show splash on load
+  showSplash();
   
   // ── State ───────────────────────────────────
   let dioceseData = null;
@@ -860,6 +1326,126 @@
 
   const tooltip = document.getElementById("tooltip");
   let hideTooltipTimeout = null;
+
+  // ── Helper function: Format clergy information ──
+  function formatClergyDisplay(clergyStr, isTooltip = false) {
+    if (!clergyStr || typeof clergyStr !== 'string') return '';
+    
+    // First split by known delimiters (semicolons, newlines)
+    let rawEntries = clergyStr.split(/[;\n]+/).map(s => s.trim()).filter(s => s.length > 0);
+    
+    const members = [];
+    
+    rawEntries.forEach(entry => {
+      // Don't split entries that have balanced parentheses with minimal content before them
+      // Check if this might be a partial entry needing reconstruction
+      
+      // Look for unmatched parentheses that might indicate the entry was split mid-role
+      const openParens = (entry.match(/\(/g) || []).length;
+      const closeParens = (entry.match(/\)/g) || []).length;
+      
+      if (openParens === 0 && closeParens > 0) {
+        // This looks like it starts with a closing paren (like "Reader)") - it's a broken role
+        // Skip it for now as it will be handled by the next entry
+        return;
+      }
+      
+      if (openParens > closeParens) {
+        // Unclosed parenthesis - this entry probably continues to the next
+        // We'll treat it as-is for now
+        members.push(entry);
+        return;
+      }
+      
+      // For entries with complete parentheses, look for multiple clergy titles at boundaries
+      // But ONLY outside of parenthetical content
+      
+      // Remove all parenthetical content to find title boundaries
+      const withoutParens = entry.replace(/\([^)]*\)/g, '');
+      
+      // Find all title positions in the text without parentheses
+      const clergyTitles = /\b(V\.\s*Rev|Rev|Archpriest|Archdeacon|Priest|Protodn|Protodeacon|Hierodeacon|Deacon|Subdeacon|Reader|Rdr|Fr\.|Fr|Father|Mr\.|Mrs\.|Ms\.|Dr\.|Pastor|Bishop|Archbishop|Patriarch)\b/gi;
+      
+      let matches = [];
+      let match;
+      clergyTitles.lastIndex = 0;
+      while ((match = clergyTitles.exec(withoutParens)) !== null) {
+        matches.push(match.index);
+      }
+      
+      if (matches.length <= 1) {
+        // Only one or no title found, keep entry as is
+        members.push(entry);
+      } else {
+        // Multiple titles found - need to split the original entry at these positions
+        // This is tricky because we need to map positions in withoutParens back to original
+        
+        // Use a different approach: split the entry more intelligently
+        // Look for patterns like "Title Name (Role) Title Name (Role)"
+        
+        const churchTitleRegex = /\b(V\.\s*Rev|Rev|Archpriest|Archdeacon|Priest|Protodn|Protodeacon|Hierodeacon|Deacon|Subdeacon|Reader|Rdr|Fr\.|Fr|Father|Mr\.|Mrs\.|Ms\.|Dr\.|Pastor|Bishop|Archbishop|Patriarch)\s+([A-Za-z.\s()]+?)(?=\b(?:V\.\s*Rev|Rev|Archpriest|Archdeacon|Priest|Protodn|Protodeacon|Hierodeacon|Deacon|Subdeacon|Reader|Rdr|Fr\.|Fr|Father|Mr\.|Mrs\.|Ms\.|Dr\.|Pastor|Bishop|Archbishop|Patriarch)\b|$)/gi;
+        
+        let piece;
+        churchTitleRegex.lastIndex = 0;
+        while ((piece = churchTitleRegex.exec(entry)) !== null) {
+          const extracted = piece[0].trim();
+          if (extracted.length > 0) {
+            members.push(extracted);
+          }
+        }
+        
+        // If regex didn't find anything, fall back to original
+        if (members.length === 0 || members[members.length - 1] !== entry) {
+          members.push(entry);
+        }
+      }
+    });
+    
+    // Clean up members - remove duplicates and empty entries
+    const cleanMembers = [...new Set(members)].filter(m => m && m.trim().length > 0);
+    
+    if (cleanMembers.length === 0) return '';
+
+    const containerClass = isTooltip ? 'tt-clergy-container' : 'clergy-container';
+    const memberClass = isTooltip ? 'tt-clergy-member' : 'clergy-member';
+    const rankClass = isTooltip ? 'tt-clergy-rank' : 'clergy-rank';
+    const nameClass = isTooltip ? 'tt-clergy-name' : 'clergy-name';
+    const roleClass = isTooltip ? 'tt-clergy-role' : 'clergy-role';
+
+    const memberHtml = cleanMembers.map(member => {
+      // Parse: "RANK NAME (ROLE)" format
+      // Examples:
+      //   "V. Rev. John Smith (Rector)"
+      //   "Priest Peter James"
+      //   "Deacon Nathan Reff"
+      //   "Rdr. James Myers (Reader)"
+      
+      const roleMatch = member.match(/\(([^)]+)\)$/);
+      const role = roleMatch ? roleMatch[1] : '';
+      const nameAndRank = roleMatch ? member.substring(0, roleMatch.index).trim() : member;
+      
+      // Try to identify rank (titles like "V. Rev.", "Rev.", "Deacon", "Priest", etc.)
+      const rankMatch = nameAndRank.match(/^(V\.\s*Rev\.|Rev\.|Archpriest|Archdeacon|Priest|Protodn\.|Protodeacon|Hierodeacon|Deacon|Subdeacon|Reader|Rdr\.|Rdr|Fr\.|Fr|Father|Mr\.|Mrs\.|Ms\.|Dr\.|Pastor|Bishop|Archbishop|Patriarch)\s+/i);
+      const rank = rankMatch ? rankMatch[1].replace(/\.$/, '') : '';
+      const name = rankMatch ? nameAndRank.substring(rankMatch[0].length).trim() : nameAndRank;
+      
+      let html = `<div class="${memberClass}">`;
+      if (rank) {
+        html += `<span class="${rankClass}">${rank}</span>`;
+      }
+      if (name) {
+        html += `<span class="${nameClass}">${name}</span>`;
+      }
+      if (role) {
+        html += `<span class="${roleClass}">${role}</span>`;
+      }
+      html += `</div>`;
+      
+      return html;
+    }).join('');
+
+    return `<div class="${containerClass}">${memberHtml}</div>`;
+  }
 
   // Keep tooltip visible when hovering over it
   tooltip.addEventListener("mouseenter", () => {
@@ -1459,6 +2045,32 @@
     }
 
     // ── Tier 1: Diocese overlapping hulls ──
+    // Diocesan seats: special marker overlay
+    if (showPoints && pointsData) {
+      const allPts = getCurrentPoints();
+      const seatFeatures = allPts.features.filter(f => f.properties.diocesanSeats && f.properties.diocesanSeats.length > 0);
+      if (seatFeatures.length > 0) {
+        // Crown/bishop indicator ring
+        layers.push(new deck.GeoJsonLayer({
+          id: "diocesan-seats-indicator",
+          data: { type: "FeatureCollection", features: seatFeatures },
+          pointType: "circle",
+          filled: false,
+          stroked: true,
+          getPointRadius: currentZoom > 9 ? 180 : currentZoom > 6 ? 900 : 3200,
+          pointRadiusUnits: "meters",
+          pointRadiusMinPixels: 8,
+          pointRadiusMaxPixels: 20,
+          getLineColor: [197, 163, 68, 180],  // Gold color
+          getLineWidth: 2.5,
+          lineWidthUnits: "pixels",
+          pickable: false,
+          updateTriggers: {
+            getPointRadius: [currentZoom],
+          },
+        }));
+      }
+    }
     // Semi-transparent fills that overlap; hovered diocese becomes prominent
     if (showDioceses) {
       layers.push(new deck.GeoJsonLayer({
@@ -1739,7 +2351,6 @@
     }
     body += `</div>`;
 
-    // Hierarchy section
     body += `<hr class="modal-divider">`;
     body += `<div class="modal-section">`;
     body += `<div class="modal-section-title"><span class="modal-icon">⛪</span>Church Hierarchy</div>`;
@@ -1749,12 +2360,30 @@
     if (p.bishop) body += `<div class="modal-row"><span class="modal-label">Bishop</span><span class="modal-value" style="color:#e0c870;font-style:italic">${p.bishop}</span></div>`;
     body += `</div>`;
 
+    // Diocesan seats section
+    if (p.diocesanSeats && p.diocesanSeats.length > 0) {
+      body += `<hr class="modal-divider">`;
+      body += `<div class="modal-section">`;
+      body += `<div class="modal-section-title"><span class="modal-icon">👑</span>Diocesan Seat</div>`;
+      p.diocesanSeats.forEach(seat => {
+        body += `<div style="margin-bottom:10px;padding:8px;background:rgba(197,163,68,0.1);border-left:3px solid #c5a344;border-radius:3px">`;
+        body += `<div style="font-weight:600;color:#c5a344;margin-bottom:4px">${seat.diocese}</div>`;
+        body += `<div style="font-size:0.85rem;color:#999"><strong>Type:</strong> ${seat.type}</div>`;
+        body += `<div style="font-size:0.85rem;color:#999"><strong>Jurisdiction:</strong> ${seat.jurisdiction}</div>`;
+        if (seat.notes) body += `<div style="font-size:0.8rem;color:#888;margin-top:4px;font-style:italic">${seat.notes}</div>`;
+        body += `</div>`;
+      });
+      body += `</div>`;
+    }
     // Contact section
     if (p.clergy || p.phone || p.email || p.website) {
       body += `<hr class="modal-divider">`;
       body += `<div class="modal-section">`;
       body += `<div class="modal-section-title"><span class="modal-icon">📞</span>Contact Information</div>`;
-      if (p.clergy) body += `<div class="modal-row"><span class="modal-label">Clergy</span><span class="modal-value">${p.clergy}</span></div>`;
+      if (p.clergy) {
+        const clergyHtml = formatClergyDisplay(p.clergy, false);
+        body += `<div class="modal-row"><span class="modal-label">Clergy</span><span class="modal-value">${clergyHtml}</span></div>`;
+      }
       if (p.phone) body += `<div class="modal-row"><span class="modal-label">Phone</span><span class="modal-value"><a href="tel:${p.phone.replace(/[^0-9+]/g, '')}" class="modal-link">${p.phone}</a></span></div>`;
       if (p.email) body += `<div class="modal-row"><span class="modal-label">Email</span><span class="modal-value"><a href="mailto:${p.email}" class="modal-link">${p.email}</a></span></div>`;
       if (p.website) body += `<div class="modal-row"><span class="modal-label">Website</span><span class="modal-value"><a href="${p.website}" target="_blank" class="modal-link">${p.website.replace(/^https?:\/\//, "").replace(/\/$/, "")} ↗</a></span></div>`;
@@ -1988,7 +2617,10 @@
     if (p.clergy || p.phone || p.email || p.website) {
       html += `<hr class="tt-divider">`;
       html += `<div class="tt-section-header"><span class="tt-icon">📞</span>Contact Info</div>`;
-      if (p.clergy) html += `<div class="tt-row"><span class="tt-label">Clergy</span><span class="tt-value">${p.clergy}</span></div>`;
+      if (p.clergy) {
+        const clergyHtml = formatClergyDisplay(p.clergy, true);
+        html += `<div class="tt-row"><span class="tt-label">Clergy</span><span class="tt-value">${clergyHtml}</span></div>`;
+      }
       if (p.phone) html += `<div class="tt-row"><span class="tt-label">Phone</span><span class="tt-value"><a href="tel:${p.phone.replace(/[^0-9+]/g, '')}" class="tt-link">${p.phone}</a><button class="tt-copy-btn" onclick="navigator.clipboard.writeText('${p.phone}')">Copy</button></span></div>`;
       if (p.email) html += `<div class="tt-row"><span class="tt-label">Email</span><span class="tt-value"><a href="mailto:${p.email}" class="tt-link tt-email">${p.email}</a></span></div>`;
       if (p.website) {

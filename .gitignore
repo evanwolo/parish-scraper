@@ -1,2 +1,6 @@
 node_modules/
 output/
+NEAR_DUPLICATES.json
+bishop-locations.json
+*.db
+*.sqlite

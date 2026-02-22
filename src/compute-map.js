@@ -12,7 +12,13 @@
  */
 
 const { Delaunay } = require("d3-delaunay");
-const turf = require("@turf/turf");
+const { point, polygon, lineString, featureCollection } = require("@turf/helpers");
+const buffer = require("@turf/buffer").default || require("@turf/buffer");
+const convex = require("@turf/convex").default || require("@turf/convex");
+const union = require("@turf/union").default || require("@turf/union");
+const intersect = require("@turf/intersect").default || require("@turf/intersect");
+const concave = require("@turf/concave").default || require("@turf/concave");
+const booleanValid = require("@turf/boolean-valid").default || require("@turf/boolean-valid");
 const { getDb, initSchema, resetComputed, closeDb } = require("./db");
 const { resolveCanonicalDiocese } = require("./diocese-lookup");
 
@@ -100,7 +106,7 @@ function computeVoronoiPolygons(points, bounds) {
   if (points.length === 0) return [];
   if (points.length === 1) {
     const [w, s, e, n] = bounds;
-    return [turf.polygon([[[w, s], [e, s], [e, n], [w, n], [w, s]]])];
+    return [polygon([[[w, s], [e, s], [e, n], [w, n], [w, s]]])];
   }
   const coords = points.map((p) => [p.lng, p.lat]);
   const delaunay = Delaunay.from(coords);
@@ -111,14 +117,14 @@ function computeVoronoiPolygons(points, bounds) {
     const cell = voronoi.cellPolygon(i);
     if (!cell || cell.length < 4) {
       const p = points[i];
-      polys.push(turf.buffer(turf.point([p.lng, p.lat]), 0.5, { units: "kilometers" }));
+      polys.push(buffer(point([p.lng, p.lat]), 0.5, { units: "kilometers" }));
       continue;
     }
     try {
-      polys.push(turf.polygon([cell]));
+      polys.push(polygon([cell]));
     } catch {
       const p = points[i];
-      polys.push(turf.buffer(turf.point([p.lng, p.lat]), 0.5, { units: "kilometers" }));
+      polys.push(buffer(point([p.lng, p.lat]), 0.5, { units: "kilometers" }));
     }
   }
   return polys;
@@ -127,14 +133,14 @@ function computeVoronoiPolygons(points, bounds) {
 function safeUnion(polygons) {
   // Filter out invalid/degenerate polygons before attempting union
   const valid = polygons.filter((p) => {
-    try { return turf.booleanValid ? turf.booleanValid(p) : true; } catch { return false; }
+    try { return booleanValid ? booleanValid(p) : true; } catch { return false; }
   });
   if (valid.length === 0) {
     // Fall back to convex hull of original polygons if all are invalid
     if (polygons.length > 0) {
       try {
-        const fc = turf.featureCollection(polygons);
-        return turf.convex(fc) || polygons[0];
+        const fc = featureCollection(polygons);
+        return convex(fc) || polygons[0];
       } catch { return polygons[0]; }
     }
     return null;
@@ -143,7 +149,7 @@ function safeUnion(polygons) {
   let result = valid[0];
   for (let i = 1; i < valid.length; i++) {
     try {
-      const u = turf.union(turf.featureCollection([result, valid[i]]));
+      const u = union(featureCollection([result, valid[i]]));
       if (u) result = u;
     } catch { continue; }
   }
@@ -152,7 +158,7 @@ function safeUnion(polygons) {
 
 function safeIntersect(a, b) {
   try {
-    return turf.intersect(turf.featureCollection([a, b]));
+    return intersect(featureCollection([a, b]));
   } catch { return a; }
 }
 
@@ -163,39 +169,39 @@ function safeIntersect(a, b) {
 function buildDioceseHull(points, bufferKm) {
   if (points.length === 0) return null;
 
-  const turfPoints = points.map(p => turf.point([p.lng, p.lat]));
-  const fc = turf.featureCollection(turfPoints);
+  const turfPoints = points.map(p => point([p.lng, p.lat]));
+  const fc = featureCollection(turfPoints);
 
   if (points.length === 1) {
-    return turf.buffer(turfPoints[0], bufferKm, { units: "kilometers" });
+    return buffer(turfPoints[0], bufferKm, { units: "kilometers" });
   }
 
   if (points.length === 2) {
-    const line = turf.lineString(points.map(p => [p.lng, p.lat]));
-    return turf.buffer(line, bufferKm, { units: "kilometers" });
+    const line = lineString(points.map(p => [p.lng, p.lat]));
+    return buffer(line, bufferKm, { units: "kilometers" });
   }
 
   // Try concave hull first (maxEdge in km — controls tightness)
   let hull = null;
   try {
-    hull = turf.concave(fc, { maxEdge: 300, units: "kilometers" });
+    hull = concave(fc, { maxEdge: 300, units: "kilometers" });
   } catch { /* fall through */ }
 
   if (!hull) {
     try {
-      hull = turf.convex(fc);
+      hull = convex(fc);
     } catch { /* fall through */ }
   }
 
   if (!hull) {
     // Last resort: union of buffered points
-    const buffered = turfPoints.map(p => turf.buffer(p, bufferKm, { units: "kilometers" }));
+    const buffered = turfPoints.map(p => buffer(p, bufferKm, { units: "kilometers" }));
     return safeUnion(buffered);
   }
 
   // Buffer the hull outward to give it body
   try {
-    const buffered = turf.buffer(hull, bufferKm, { units: "kilometers" });
+    const buffered = buffer(hull, bufferKm, { units: "kilometers" });
     return buffered || hull;
   } catch {
     return hull;

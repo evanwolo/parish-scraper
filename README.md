@@ -1,8 +1,10 @@
 # Parish Scraper
 
-A comprehensive Node.js scraper that collects Orthodox parish data from **12+ public directories** across all major jurisdictions in North America and exports to CSV + JSON.
+A comprehensive Node.js scraper that collects Orthodox parish data from **19+ public directories** across North America and Europe and exports to CSV + JSON.
 
 ## Sources
+
+### North America (12 sources)
 
 | Key | Source | URL | Est. Parishes |
 |-----|--------|-----|---------------|
@@ -19,7 +21,19 @@ A comprehensive Node.js scraper that collects Orthodox parish data from **12+ pu
 | `assembly` | Assembly of Canonical Orthodox Bishops | https://www.assemblyofbishops.org/directories/parishes | Cross-reference |
 | `orthodox-world` | Orthodox World Directory | https://orthodox-world.oramaworld.com/ | Supplementary |
 
-**Total Coverage: ~2,400+ Orthodox parishes in North America**
+### Europe (7 sources) 🌍
+
+| Key | Source | URL | Country | Est. Coverage |
+|-----|--------|-----|---------|---------------|
+| `romanian-europe` | Romanian Orthodox Church | https://www.patriarhia.ro/ | Romania 🇷🇴 | ~150 |
+| `serbian-europe` | Serbian Orthodox Church | https://www.spc.rs/ | Serbia 🇷🇸 | ~200 |
+| `ukrainian-europe` | Ukrainian Orthodox Church | https://www.orthodoxua.org/ | Ukraine 🇺🇦 | ~300 |
+| `russian-europe` | Russian Orthodox Church | https://www.patriarchia.ru/ | Russia 🇷🇺 | ~150 |
+| `church-of-greece` | Church of Greece | https://www.ec-synod.gr/ | Greece 🇬🇷 | ~150 |
+| `warsaw-orthodox` | Polish Orthodox Church | https://www.orthodox.pl/ | Poland 🇵🇱 | ~100 |
+| `georgian-orthodox` | Georgian Orthodox Church | https://www.georgian-church.org/ | Georgia 🇬🇪 | ~50 |
+
+**Total Coverage: ~3,700+ Orthodox parishes (North America + Europe)**
 
 ## Quick Start
 
@@ -27,35 +41,45 @@ A comprehensive Node.js scraper that collects Orthodox parish data from **12+ pu
 
 ```bash
 npm install
-npm run scrape:all          # scrape ALL 12 sources + merge + deduplicate
-npm run scrape:all:retry    # retry failed scrapers automatically
+npm run scrape              # scrape ALL 12 sources + merge + deduplicate
+npm run scrape:retry        # retry failed scrapers automatically
 ```
 
 ### Scrape Individual Sources
 
 ```bash
-npm run scrape              # scrape all (alternative)
-npm run scrape:oca
-npm run scrape:chicago
-npm run scrape:goarch       # Greek Orthodox
-npm run scrape:antiochian
-npm run scrape:serbian
-npm run scrape:romanian
-npm run scrape:bulgarian
-npm run scrape:acrod
-npm run scrape:uoc
-npm run scrape:ea-diocese
-npm run scrape:assembly
-npm run scrape:orthodox-world
+# North America
+node scrape.js --source oca
+node scrape.js --source chicago
+node scrape.js --source goarch       # Greek Orthodox
+node scrape.js --source antiochian
+node scrape.js --source serbian
+node scrape.js --source romanian
+node scrape.js --source bulgarian
+node scrape.js --source acrod
+node scrape.js --source uoc
+node scrape.js --source ea-diocese
+node scrape.js --source assembly
+node scrape.js --source orthodox-world
+
+# Europe 🌍
+node scrape.js --source romanian-europe
+node scrape.js --source serbian-europe
+node scrape.js --source ukrainian-europe
+node scrape.js --source russian-europe
+node scrape.js --source church-of-greece
+node scrape.js --source warsaw-orthodox
+node scrape.js --source georgian-orthodox
 ```
 
 Output files are written to `output/` as both CSV and JSON:
 
 ```
 output/
+  # North America (12 sources)
   oca.csv / oca.json
   chicago-rocor.csv / chicago-rocor.json
-  goarch.csv / goarch.json                      # Greek Orthodox
+  goarch.csv / goarch.json
   antiochian.csv / antiochian.json
   serbian.csv / serbian.json
   romanian.csv / romanian.json
@@ -66,14 +90,23 @@ output/
   assembly-of-bishops.csv / assembly-of-bishops.json
   orthodox-world.csv / orthodox-world.json
   
-  all-parishes.csv                              # ⭐ Merged & deduplicated
+  # Europe (7 sources) 🌍
+  romanian-orthodox-europe.csv / romanian-orthodox-europe.json
+  serbian-orthodox-europe.csv / serbian-orthodox-europe.json
+  ukrainian-orthodox-europe.csv / ukrainian-orthodox-europe.json
+  russian-orthodox-europe.csv / russian-orthodox-europe.json
+  church-of-greece.csv / church-of-greece.json
+  warsaw-orthodox.csv / warsaw-orthodox.json
+  georgian-orthodox.csv / georgian-orthodox.json
+  
+  all-parishes.csv                              # ⭐ Merged & deduplicated (19 sources)
   all-parishes.json                             # ⭐ Complete dataset
 ```
 
 ## Features
 
 ### Comprehensive Coverage
-- **12 scrapers** covering all major Orthodox jurisdictions in North America
+- **19 scrapers** covering Orthodox jurisdictions in North America (12) and Europe (7)
 - Cross-references multiple sources for accuracy
 - Deduplication merges records from different sources intelligently
 
@@ -83,8 +116,8 @@ output/
 - Phone, website, address, clergy information
 - Source priority system (first-party > cross-reference > supplementary)
 
-### Scrape-All Script
-The `scrape-all.js` script provides:
+### Scrape Script
+The `scrape.js` script provides:
 - ✅ Runs all 12 scrapers sequentially
 - ✅ Automatic retry on failure (with `--retry` flag)
 - ✅ Comprehensive error handling
@@ -107,8 +140,7 @@ All HTTP requests include polite delays, retry logic with exponential back-off, 
 ## Project Structure
 
 ```
-scrape-all.js                 # ⭐ Comprehensive scraper (runs all sources)
-index.js                      # CLI runner (individual or all sources)
+scrape.js                     # ⭐ Unified scraper CLI (all or individual sources)
 src/
   utils.js                    # shared HTTP client, CSV/JSON writers
   sanitize.js                 # data normalization
@@ -117,6 +149,10 @@ src/
   import.js                   # SQLite database import
   db.js                       # SQLite schema & queries
   geocode.js                  # coordinate lookup
+  routes/                     # Express route modules
+    auth.js
+    user.js
+    parishes.js
   scrapers/
     oca.js
     chicago-rocor.js
@@ -137,6 +173,9 @@ src/
 - **Assembly of Bishops**: The scraper can be configured to filter by jurisdiction. By default it scrapes all canonical jurisdictions
     assembly-of-bishops.js
     orthodox-world.js
+data/
+  diocese-registry.json
+  patriarchate-hierarchy.json
 output/                       # generated (gitignored)
 public/                       # web interface
 server.js                     # Express server for map visualization
@@ -146,6 +185,11 @@ server.js                     # Express server for map visualization
 
 - Node.js 18+
 - npm
+
+## Documentation
+
+- [Scraper Audit](docs/SCRAPER_AUDIT.md) – Coverage analysis and data quality report
+- [User Authentication](docs/USER_AUTHENTICATION.md) – Web interface authentication guide
 
 ## Notes
 
