@@ -22,8 +22,13 @@ const booleanValid = require("@turf/boolean-valid").default || require("@turf/bo
 const { getDb, initSchema, resetComputed, closeDb } = require("./db");
 const { resolveCanonicalDiocese } = require("./diocese-lookup");
 
-// Bounding box for North America [west, south, east, north]
-const BOUNDS = [-180, 15, -50, 72]; // Include full Alaska (Aleutians go past -170)
+// Bounding boxes for different regions
+const REGIONS = {
+  northamerica: [-180, 15, -50, 72],  // Include full Alaska (Aleutians go past -170)
+  europe: [-10, 35, 45, 70],          // Europe from UK to Russia, Turkey to Arctic
+  global: [-180, -90, 180, 90]        // World
+};
+const BOUNDS = REGIONS.global;  // Process all data globally
 const DBSCAN_MIN_PTS = 2;
 const FALLBACK_EPSILON_KM = 8;
 const EPSILON_PERCENTILE = 0.15;

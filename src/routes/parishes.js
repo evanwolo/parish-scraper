@@ -237,8 +237,28 @@ router.get("/map/points", (_req, res) => {
         console.error("[api/map/points] Error loading diocesan seats:", e.message);
       }
 
+    // Load European churches
+    let europeanFeatures = [];
+    try {
+      const europeanPath = path.join(__dirname, "..", "..", "output", "european-churches-geojson.json");
+      console.error(`[DEBUG] Attempting to load European churches from: ${europeanPath}`);
+      console.error(`[DEBUG] File exists: ${fs.existsSync(europeanPath)}`);
+      if (fs.existsSync(europeanPath)) {
+        const europeanGeoJSON = JSON.parse(fs.readFileSync(europeanPath, "utf-8"));
+        europeanFeatures = europeanGeoJSON.features || [];
+        console.error(`[DEBUG] Loaded ${europeanFeatures.length} European churches`);
+        console.error(`[api/map/points] Loaded ${europeanFeatures.length} European churches`);
+      } else {
+        console.error(`[DEBUG] European churches file does not exist: ${europeanPath}`);
+      }
+    } catch (e) {
+      console.error(`[DEBUG] ERROR: ${e.message}`);
+      console.warn("[api/map/points] Warning: Could not load European churches:", e.message);
+    }
+
+    // Get North American parishes from database
     const rows = db.prepare("SELECT * FROM parishes WHERE lat IS NOT NULL AND lng IS NOT NULL").all();
-    const features = rows.map((r) => {
+    const naFeatures = rows.map((r) => {
       const importance = classifyImportance(r.name);
       const dioceseInfo = lookupDiocese(r.diocese);
       const patriarchate = getPatriarchate(r.jurisdiction);
@@ -256,11 +276,18 @@ router.get("/map/points", (_req, res) => {
           bishop: dioceseInfo?.bishop || null,
           region: dioceseInfo?.region || null,
              diocesanSeats: diocesanSeatsMap[seatKey] || null,
+          region: "North America"
         },
         geometry: { type: "Point", coordinates: [r.lng, r.lat] },
       };
     });
-    res.json({ type: "FeatureCollection", features });
+
+    // Combine North American and European features
+    const allFeatures = [...naFeatures, ...europeanFeatures];
+    
+    console.log(`[api/map/points] Serving ${allFeatures.length} total features (${naFeatures.length} NA + ${europeanFeatures.length} Europe)`);
+    
+    res.json({ type: "FeatureCollection", features: allFeatures });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -277,9 +304,33 @@ router.get("/map/meta", (_req, res) => {
     const dioceses = db.prepare(
       "SELECT DISTINCT diocese, jurisdiction FROM polygons WHERE tier = 1 ORDER BY jurisdiction, diocese"
     ).all();
+    
+    // Count European churches if available
+    let europeanCount = 0;
+    try {
+      const europeanPath = path.join(__dirname, "..", "..", "output", "european-churches.json");
+      if (fs.existsSync(europeanPath)) {
+        const europeanChurches = JSON.parse(fs.readFileSync(europeanPath, "utf-8"));
+        europeanCount = europeanChurches.length || 0;
+      }
+    } catch (e) {
+      // Silently ignore if file not found
+    }
+    
     res.json({
-      stats: { parishes: parishCount, dioceses: dioceseCount, clusters: clusterCount, tier1Polygons: tier1Count, tier2Polygons: tier2Count },
-      colors: JURISDICTION_COLORS, defaultColor: DEFAULT_COLOR, dioceses,
+      stats: { 
+        naParishes: parishCount,
+        europeanChurches: europeanCount, 
+        totalFeatures: parishCount + europeanCount,
+        dioceses: dioceseCount, 
+        clusters: clusterCount, 
+        tier1Polygons: tier1Count, 
+        tier2Polygons: tier2Count 
+      },
+      colors: JURISDICTION_COLORS, 
+      defaultColor: DEFAULT_COLOR, 
+      dioceses,
+      regions: ["North America", "Europe"]
     });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
