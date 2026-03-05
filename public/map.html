@@ -1528,7 +1528,7 @@
 
       document.getElementById("loading-overlay").style.display = "none";
       document.getElementById("stats").textContent =
-        `${meta.stats.parishes} parishes · ${meta.stats.dioceses} dioceses · ${meta.stats.clusters} clusters`;
+        `${meta.stats.totalFeatures} parishes · ${meta.stats.dioceses} dioceses · ${meta.stats.clusters} clusters`;
 
       console.log("About to call buildLegend...");
       buildLegend(meta);
@@ -1570,7 +1570,7 @@
       el.className = "legend-item";
       el.innerHTML =
         `<div class="legend-swatch" style="background:rgba(${color[0]},${color[1]},${color[2]},0.7)"></div>` +
-        `<span>${abbreviateJurisdiction(j)}</span>`;
+        `<span>${escapeHtml(abbreviateJurisdiction(j))}</span>`;
       el.addEventListener("click", () => {
         if (hiddenJurisdictions.has(j)) {
           hiddenJurisdictions.delete(j);
@@ -1583,6 +1583,13 @@
       });
       container.appendChild(el);
     }
+  }
+
+  function escapeHtml(str) {
+    if (!str) return str;
+    const div = document.createElement("div");
+    div.appendChild(document.createTextNode(String(str)));
+    return div.innerHTML;
   }
 
   function abbreviateJurisdiction(j) {
@@ -1833,11 +1840,11 @@
                        currentFilters.state || currentFilters.importance;
     if (hasFilters) {
       document.getElementById("stats").innerHTML = 
-        `<span style="color:var(--gold)">🔍 ${filteredPoints.features.length}</span> of ${metaData.stats.parishes} parishes · ` +
+        `<span style="color:var(--gold)">🔍 ${filteredPoints.features.length}</span> of ${metaData.stats.totalFeatures} parishes · ` +
         `<span style="font-size:0.7rem;opacity:0.7">filters active</span>`;
     } else {
       document.getElementById("stats").textContent =
-        `${metaData.stats.parishes} parishes · ${metaData.stats.dioceses} dioceses · ${metaData.stats.clusters} clusters`;
+        `${metaData.stats.totalFeatures} parishes · ${metaData.stats.dioceses} dioceses · ${metaData.stats.clusters} clusters`;
     }
 
     updateLayers();
@@ -1920,9 +1927,9 @@
       const p = f.properties;
       const locationParts = [p.city, p.state].filter(Boolean);
       html += `<div class="parish-list-item" data-lng="${f.geometry.coordinates[0]}" data-lat="${f.geometry.coordinates[1]}">`;
-      html += `<div class="parish-list-item-name">${p.name}</div>`;
-      html += `<div class="parish-list-item-details">${locationParts.join(", ")}`;
-      if (p.diocese) html += ` · ${p.diocese}`;
+      html += `<div class="parish-list-item-name">${escapeHtml(p.name)}</div>`;
+      html += `<div class="parish-list-item-details">${locationParts.map(escapeHtml).join(", ")}`;
+      if (p.diocese) html += ` · ${escapeHtml(p.diocese)}`;
       html += `</div></div>`;
     });
 
@@ -2327,24 +2334,24 @@
       ? `<span class="modal-badge modal-importance ${p.importance}">${impLabel}</span>`
       : "";
 
-    let title = `<span class="modal-icon">⛪</span>${p.name}${impBadge}`;
+    let title = `<span class="modal-icon">⛪</span>${escapeHtml(p.name)}${impBadge}`;
     
     let body = "";
     if (p.patriarchate) {
-      body += `<div class="modal-badge modal-patriarchate">☦︎ ${p.patriarchate}</div>`;
+      body += `<div class="modal-badge modal-patriarchate">☦︎ ${escapeHtml(p.patriarchate)}</div>`;
     }
 
     // Location section
     body += `<hr class="modal-divider">`;
     body += `<div class="modal-section">`;
     body += `<div class="modal-section-title"><span class="modal-icon">📍</span>Location</div>`;
-    const locationParts = [p.city, p.state].filter(Boolean);
-    if (p.country && p.country !== "USA" && p.country !== "US") locationParts.push(p.country);
+    const locationParts = [p.city, p.state].filter(Boolean).map(escapeHtml);
+    if (p.country && p.country !== "USA" && p.country !== "US") locationParts.push(escapeHtml(p.country));
     if (locationParts.length > 0) {
       body += `<div class="modal-row"><span class="modal-label">Place</span><span class="modal-value">${locationParts.join(", ")}</span></div>`;
     }
     if (p.address) {
-      body += `<div class="modal-row"><span class="modal-label">Address</span><span class="modal-value">${p.address}</span></div>`;
+      body += `<div class="modal-row"><span class="modal-label">Address</span><span class="modal-value">${escapeHtml(p.address)}</span></div>`;
     }
     if (coords) {
       body += `<div class="modal-row"><span class="modal-label">Coordinates</span><span class="modal-value"><span class="modal-coords">${coords[1].toFixed(6)}, ${coords[0].toFixed(6)}</span></span></div>`;
@@ -2354,10 +2361,10 @@
     body += `<hr class="modal-divider">`;
     body += `<div class="modal-section">`;
     body += `<div class="modal-section-title"><span class="modal-icon">⛪</span>Church Hierarchy</div>`;
-    body += `<div class="modal-row"><span class="modal-label">Diocese</span><span class="modal-value">${p.diocese || "—"}</span></div>`;
-    if (p.deanery) body += `<div class="modal-row"><span class="modal-label">Deanery</span><span class="modal-value">${p.deanery}</span></div>`;
-    body += `<div class="modal-row"><span class="modal-label">Jurisdiction</span><span class="modal-value">${abbreviateJurisdiction(p.jurisdiction)}</span></div>`;
-    if (p.bishop) body += `<div class="modal-row"><span class="modal-label">Bishop</span><span class="modal-value" style="color:#e0c870;font-style:italic">${p.bishop}</span></div>`;
+    body += `<div class="modal-row"><span class="modal-label">Diocese</span><span class="modal-value">${escapeHtml(p.diocese) || "—"}</span></div>`;
+    if (p.deanery) body += `<div class="modal-row"><span class="modal-label">Deanery</span><span class="modal-value">${escapeHtml(p.deanery)}</span></div>`;
+    body += `<div class="modal-row"><span class="modal-label">Jurisdiction</span><span class="modal-value">${escapeHtml(abbreviateJurisdiction(p.jurisdiction))}</span></div>`;
+    if (p.bishop) body += `<div class="modal-row"><span class="modal-label">Bishop</span><span class="modal-value" style="color:#e0c870;font-style:italic">${escapeHtml(p.bishop)}</span></div>`;
     body += `</div>`;
 
     // Diocesan seats section
@@ -2367,10 +2374,10 @@
       body += `<div class="modal-section-title"><span class="modal-icon">👑</span>Diocesan Seat</div>`;
       p.diocesanSeats.forEach(seat => {
         body += `<div style="margin-bottom:10px;padding:8px;background:rgba(197,163,68,0.1);border-left:3px solid #c5a344;border-radius:3px">`;
-        body += `<div style="font-weight:600;color:#c5a344;margin-bottom:4px">${seat.diocese}</div>`;
-        body += `<div style="font-size:0.85rem;color:#999"><strong>Type:</strong> ${seat.type}</div>`;
-        body += `<div style="font-size:0.85rem;color:#999"><strong>Jurisdiction:</strong> ${seat.jurisdiction}</div>`;
-        if (seat.notes) body += `<div style="font-size:0.8rem;color:#888;margin-top:4px;font-style:italic">${seat.notes}</div>`;
+        body += `<div style="font-weight:600;color:#c5a344;margin-bottom:4px">${escapeHtml(seat.diocese)}</div>`;
+        body += `<div style="font-size:0.85rem;color:#999"><strong>Type:</strong> ${escapeHtml(seat.type)}</div>`;
+        body += `<div style="font-size:0.85rem;color:#999"><strong>Jurisdiction:</strong> ${escapeHtml(seat.jurisdiction)}</div>`;
+        if (seat.notes) body += `<div style="font-size:0.8rem;color:#888;margin-top:4px;font-style:italic">${escapeHtml(seat.notes)}</div>`;
         body += `</div>`;
       });
       body += `</div>`;
@@ -2384,9 +2391,9 @@
         const clergyHtml = formatClergyDisplay(p.clergy, false);
         body += `<div class="modal-row"><span class="modal-label">Clergy</span><span class="modal-value">${clergyHtml}</span></div>`;
       }
-      if (p.phone) body += `<div class="modal-row"><span class="modal-label">Phone</span><span class="modal-value"><a href="tel:${p.phone.replace(/[^0-9+]/g, '')}" class="modal-link">${p.phone}</a></span></div>`;
-      if (p.email) body += `<div class="modal-row"><span class="modal-label">Email</span><span class="modal-value"><a href="mailto:${p.email}" class="modal-link">${p.email}</a></span></div>`;
-      if (p.website) body += `<div class="modal-row"><span class="modal-label">Website</span><span class="modal-value"><a href="${p.website}" target="_blank" class="modal-link">${p.website.replace(/^https?:\/\//, "").replace(/\/$/, "")} ↗</a></span></div>`;
+      if (p.phone) body += `<div class="modal-row"><span class="modal-label">Phone</span><span class="modal-value"><a href="tel:${p.phone.replace(/[^0-9+]/g, '')}" class="modal-link">${escapeHtml(p.phone)}</a></span></div>`;
+      if (p.email) body += `<div class="modal-row"><span class="modal-label">Email</span><span class="modal-value"><a href="mailto:${escapeHtml(p.email)}" class="modal-link">${escapeHtml(p.email)}</a></span></div>`;
+      if (p.website) body += `<div class="modal-row"><span class="modal-label">Website</span><span class="modal-value"><a href="${escapeHtml(p.website)}" target="_blank" class="modal-link">${escapeHtml(p.website.replace(/^https?:\/\//, "").replace(/\/$/, ""))} ↗</a></span></div>`;
       body += `</div>`;
     }
 
@@ -2403,8 +2410,8 @@
     if (p.clusterId || p.source) {
       body += `<hr class="modal-divider">`;
       body += `<div style="font-size:0.8rem;color:#889;display:flex;gap:12px;flex-wrap:wrap">`;
-      if (p.clusterId) body += `<span>Cluster #${p.clusterId}</span>`;
-      if (p.source) body += `<span>Source: ${p.source}</span>`;
+      if (p.clusterId) body += `<span>Cluster #${escapeHtml(p.clusterId)}</span>`;
+      if (p.source) body += `<span>Source: ${escapeHtml(p.source)}</span>`;
       body += `</div>`;
     }
 
@@ -2415,19 +2422,19 @@
     if (!info.object) return;
     const p = info.object.properties;
     
-    let title = `<span class="modal-icon">⛪</span>${p.diocese || "Unknown Diocese"}`;
+    let title = `<span class="modal-icon">⛪</span>${escapeHtml(p.diocese) || "Unknown Diocese"}`;
     
     let body = "";
     if (p.patriarchate) {
-      body += `<div class="modal-badge modal-patriarchate">☦︎ ${p.patriarchate}</div>`;
+      body += `<div class="modal-badge modal-patriarchate">☦︎ ${escapeHtml(p.patriarchate)}</div>`;
     }
 
     body += `<hr class="modal-divider">`;
     body += `<div class="modal-section">`;
     body += `<div class="modal-section-title"><span class="modal-icon">⛪</span>Diocese Information</div>`;
-    body += `<div class="modal-row"><span class="modal-label">Jurisdiction</span><span class="modal-value">${abbreviateJurisdiction(p.jurisdiction)}</span></div>`;
-    if (p.bishop) body += `<div class="modal-row"><span class="modal-label">Bishop</span><span class="modal-value" style="color:#e0c870;font-style:italic">${p.bishop}</span></div>`;
-    if (p.region) body += `<div class="modal-row"><span class="modal-label">Region</span><span class="modal-value">${p.region}</span></div>`;
+    body += `<div class="modal-row"><span class="modal-label">Jurisdiction</span><span class="modal-value">${escapeHtml(abbreviateJurisdiction(p.jurisdiction))}</span></div>`;
+    if (p.bishop) body += `<div class="modal-row"><span class="modal-label">Bishop</span><span class="modal-value" style="color:#e0c870;font-style:italic">${escapeHtml(p.bishop)}</span></div>`;
+    if (p.region) body += `<div class="modal-row"><span class="modal-label">Region</span><span class="modal-value">${escapeHtml(p.region)}</span></div>`;
     if (p.parishCount) body += `<div class="modal-row"><span class="modal-label">Parishes</span><span class="modal-value" style="font-weight:700;color:#ffd">${p.parishCount}</span></div>`;
     body += `</div>`;
 
@@ -2435,7 +2442,7 @@
       body += `<hr class="modal-divider">`;
       body += `<div class="modal-section">`;
       body += `<div class="modal-section-title"><span class="modal-icon">🗺️</span>Geographic Coverage</div>`;
-      body += `<div class="modal-value" style="padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:6px;border:1px solid rgba(255,255,255,0.08)">${p.states.join(", ")}</div>`;
+      body += `<div class="modal-value" style="padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:6px;border:1px solid rgba(255,255,255,0.08)">${p.states.map(escapeHtml).join(", ")}</div>`;
       body += `</div>`;
     }
 
@@ -2453,7 +2460,7 @@
         body += `<div class="modal-section">`;
         body += `<div class="modal-section-title"><span class="modal-icon">⚠️</span>Overlapping Jurisdictions (${overlapping.length})</div>`;
         overlapping.slice(0, 10).forEach(ov => {
-          body += `<div class="modal-row"><span class="modal-value">• ${ov.properties.diocese} <span style="color:#899">(${abbreviateJurisdiction(ov.properties.jurisdiction)})</span></span></div>`;
+          body += `<div class="modal-row"><span class="modal-value">• ${escapeHtml(ov.properties.diocese)} <span style="color:#899">(${escapeHtml(abbreviateJurisdiction(ov.properties.jurisdiction))})</span></span></div>`;
         });
         if (overlapping.length > 10) body += `<div style="color:#899;font-size:0.85rem">…and ${overlapping.length - 10} more</div>`;
         body += `</div>`;
@@ -2467,18 +2474,18 @@
     if (!info.object) return;
     const p = info.object.properties;
     
-    let title = `<span class="modal-icon">🗺️</span>${p.diocese || "Parish Territory"}`;
+    let title = `<span class="modal-icon">🗺️</span>${escapeHtml(p.diocese) || "Parish Territory"}`;
     
     let body = "";
     if (p.patriarchate) {
-      body += `<div class="modal-badge modal-patriarchate">☦︎ ${p.patriarchate}</div>`;
+      body += `<div class="modal-badge modal-patriarchate">☦︎ ${escapeHtml(p.patriarchate)}</div>`;
     }
 
     body += `<hr class="modal-divider">`;
     body += `<div class="modal-section">`;
     body += `<div class="modal-section-title"><span class="modal-icon">🗺️</span>Territory Information</div>`;
-    body += `<div class="modal-row"><span class="modal-label">Territory ID</span><span class="modal-value">${p.entityId}</span></div>`;
-    body += `<div class="modal-row"><span class="modal-label">Jurisdiction</span><span class="modal-value">${abbreviateJurisdiction(p.jurisdiction)}</span></div>`;
+    body += `<div class="modal-row"><span class="modal-label">Territory ID</span><span class="modal-value">${escapeHtml(p.entityId)}</span></div>`;
+    body += `<div class="modal-row"><span class="modal-label">Jurisdiction</span><span class="modal-value">${escapeHtml(abbreviateJurisdiction(p.jurisdiction))}</span></div>`;
     if (p.parishNames && p.parishNames.length > 0) {
       body += `<div class="modal-row"><span class="modal-label">Parishes</span><span class="modal-value" style="font-weight:700;color:#ffd">${p.parishNames.length}</span></div>`;
     }
@@ -2489,8 +2496,8 @@
       body += `<div class="modal-section">`;
       body += `<div class="modal-section-title"><span class="modal-icon">⛪</span>Parishes in Territory</div>`;
       p.parishNames.forEach(n => {
-        let line = `<div class="modal-row"><span class="modal-value">• ${n.name || "?"}`;
-        if (n.city || n.state) line += ` <span style="color:#899">(${[n.city, n.state].filter(Boolean).join(", ")})</span>`;
+        let line = `<div class="modal-row"><span class="modal-value">• ${escapeHtml(n.name) || "?"}`;
+        if (n.city || n.state) line += ` <span style="color:#899">(${[n.city, n.state].filter(Boolean).map(escapeHtml).join(", ")})</span>`;
         line += `</span></div>`;
         body += line;
       });
@@ -2522,21 +2529,21 @@
       if (overlapping.length > 0) {
         overlapHtml = `<hr class="tt-divider"><div class="tt-section-header"><span class="tt-icon">⚠️</span> Overlapping Jurisdictions</div>`;
         for (const ov of overlapping.slice(0, 5)) {
-          overlapHtml += `<div style="padding-left:12px;color:#dde;font-size:0.76rem;margin:2px 0">• ${ov.properties.diocese} <span style="color:#899">(${abbreviateJurisdiction(ov.properties.jurisdiction)})</span></div>`;
+          overlapHtml += `<div style="padding-left:12px;color:#dde;font-size:0.76rem;margin:2px 0">• ${escapeHtml(ov.properties.diocese)} <span style="color:#899">(${escapeHtml(abbreviateJurisdiction(ov.properties.jurisdiction))})</span></div>`;
         }
         if (overlapping.length > 5) overlapHtml += `<div style="padding-left:12px;color:#899;font-size:0.74rem">…and ${overlapping.length - 5} more</div>`;
       }
     }
 
-    let html = `<strong><span class="tt-icon">⛪</span>${p.diocese || "Unknown Diocese"}</strong>`;
-    if (p.patriarchate) html += `<div class="tt-patriarchate">☦︎ ${p.patriarchate}</div>`;
+    let html = `<strong><span class="tt-icon">⛪</span>${escapeHtml(p.diocese) || "Unknown Diocese"}</strong>`;
+    if (p.patriarchate) html += `<div class="tt-patriarchate">☦︎ ${escapeHtml(p.patriarchate)}</div>`;
     
     html += `<hr class="tt-divider">`;
-    html += `<div class="tt-row"><span class="tt-label"><span class="tt-icon">🏛️</span>Jurisdiction</span><span class="tt-value">${abbreviateJurisdiction(p.jurisdiction)}</span></div>`;
-    if (p.bishop) html += `<div class="tt-row"><span class="tt-label"><span class="tt-icon">👤</span>Bishop</span><span class="tt-value tt-bishop">${p.bishop}</span></div>`;
-    if (p.region) html += `<div class="tt-row"><span class="tt-label"><span class="tt-icon">📍</span>Region</span><span class="tt-value">${p.region}</span></div>`;
+    html += `<div class="tt-row"><span class="tt-label"><span class="tt-icon">🏛️</span>Jurisdiction</span><span class="tt-value">${escapeHtml(abbreviateJurisdiction(p.jurisdiction))}</span></div>`;
+    if (p.bishop) html += `<div class="tt-row"><span class="tt-label"><span class="tt-icon">👤</span>Bishop</span><span class="tt-value tt-bishop">${escapeHtml(p.bishop)}</span></div>`;
+    if (p.region) html += `<div class="tt-row"><span class="tt-label"><span class="tt-icon">📍</span>Region</span><span class="tt-value">${escapeHtml(p.region)}</span></div>`;
     if (p.parishCount) html += `<div class="tt-row"><span class="tt-label"><span class="tt-icon">📊</span>Parishes</span><span class="tt-value" style="font-weight:700;color:#ffd">${p.parishCount}</span></div>`;
-    if (p.states && p.states.length > 0) html += `<div class="tt-states"><span class="tt-icon">🗺️</span> Coverage: ${p.states.join(", ")}</div>`;
+    if (p.states && p.states.length > 0) html += `<div class="tt-states"><span class="tt-icon">🗺️</span> Coverage: ${p.states.map(escapeHtml).join(", ")}</div>`;
     
     html += overlapHtml;
 
@@ -2552,12 +2559,12 @@
     }
     const p = info.object.properties;
     
-    let html = `<strong><span class="tt-icon">🗺️</span>${p.diocese || "Parish Territory"}</strong>`;
-    if (p.patriarchate) html += `<div class="tt-patriarchate">☦︎ ${p.patriarchate}</div>`;
+    let html = `<strong><span class="tt-icon">🗺️</span>${escapeHtml(p.diocese) || "Parish Territory"}</strong>`;
+    if (p.patriarchate) html += `<div class="tt-patriarchate">☦︎ ${escapeHtml(p.patriarchate)}</div>`;
     
     html += `<hr class="tt-divider">`;
-    html += `<div class="tt-row"><span class="tt-label"><span class="tt-icon">🆔</span>Territory</span><span class="tt-value">${p.entityId}</span></div>`;
-    html += `<div class="tt-row"><span class="tt-label"><span class="tt-icon">🏛️</span>Jurisdiction</span><span class="tt-value">${abbreviateJurisdiction(p.jurisdiction)}</span></div>`;
+    html += `<div class="tt-row"><span class="tt-label"><span class="tt-icon">🆔</span>Territory</span><span class="tt-value">${escapeHtml(p.entityId)}</span></div>`;
+    html += `<div class="tt-row"><span class="tt-label"><span class="tt-icon">🏛️</span>Jurisdiction</span><span class="tt-value">${escapeHtml(abbreviateJurisdiction(p.jurisdiction))}</span></div>`;
     
     if (p.parishNames && p.parishNames.length > 0) {
       html += `<div class="tt-row"><span class="tt-label"><span class="tt-icon">📊</span>Parishes</span><span class="tt-value" style="font-weight:700;color:#ffd">${p.parishNames.length}</span></div>`;
@@ -2565,8 +2572,8 @@
       html += `<div class="tt-section-header"><span class="tt-icon">⛪</span>Parishes in Territory</div>`;
       const names = p.parishNames.slice(0, 6);
       names.forEach(n => {
-        let line = `<div style="padding-left:12px;color:#dde;font-size:0.76rem;margin:2px 0">• ${n.name || "?"}`;
-        if (n.city || n.state) line += ` <span style="color:#899">(${[n.city, n.state].filter(Boolean).join(", ")})</span>`;
+        let line = `<div style="padding-left:12px;color:#dde;font-size:0.76rem;margin:2px 0">• ${escapeHtml(n.name) || "?"}`;
+        if (n.city || n.state) line += ` <span style="color:#899">(${[n.city, n.state].filter(Boolean).map(escapeHtml).join(", ")})</span>`;
         line += `</div>`;
         html += line;
       });
@@ -2591,27 +2598,27 @@
       : "";
 
     // ── Title row ──
-    let html = `<strong><span class="tt-icon">⛪</span>${p.name}</strong>${impBadge}`;
-    if (p.patriarchate) html += `<div class="tt-patriarchate">☦︎ ${p.patriarchate}</div>`;
+    let html = `<strong><span class="tt-icon">⛪</span>${escapeHtml(p.name)}</strong>${impBadge}`;
+    if (p.patriarchate) html += `<div class="tt-patriarchate">☦︎ ${escapeHtml(p.patriarchate)}</div>`;
     
     // ── Jurisdiction (prominent) ──
-    html += `<div class="tt-jurisdiction"><span class="tt-icon">🏛️</span>${p.jurisdiction || "—"}</div>`;
+    html += `<div class="tt-jurisdiction"><span class="tt-icon">🏛️</span>${escapeHtml(p.jurisdiction) || "—"}</div>`;
 
     // ── Location section ──
     html += `<hr class="tt-divider">`;
     html += `<div class="tt-section-header"><span class="tt-icon">📍</span>Location</div>`;
-    const locationParts = [p.city, p.state].filter(Boolean);
-    if (p.country && p.country !== "USA" && p.country !== "US") locationParts.push(p.country);
+    const locationParts = [p.city, p.state].filter(Boolean).map(escapeHtml);
+    if (p.country && p.country !== "USA" && p.country !== "US") locationParts.push(escapeHtml(p.country));
     if (locationParts.length > 0) html += `<div class="tt-row"><span class="tt-label">Place</span><span class="tt-value">${locationParts.join(", ")}</span></div>`;
-    if (p.address) html += `<div class="tt-row"><span class="tt-label">Address</span><span class="tt-value tt-address">${p.address}<button class="tt-copy-btn" onclick="navigator.clipboard.writeText('${p.address.replace(/'/g, "\\'")}')">Copy</button></span></div>`;
+    if (p.address) html += `<div class="tt-row"><span class="tt-label">Address</span><span class="tt-value tt-address">${escapeHtml(p.address)}<button class="tt-copy-btn" onclick="navigator.clipboard.writeText(this.parentElement.childNodes[0].textContent)">Copy</button></span></div>`;
     if (coords) html += `<div class="tt-coords">${coords[1].toFixed(6)}, ${coords[0].toFixed(6)}</div>`;
 
     // ── Hierarchy section ──
     html += `<hr class="tt-divider">`;
     html += `<div class="tt-section-header"><span class="tt-icon">⛪</span>Church Hierarchy</div>`;
-    html += `<div class="tt-row"><span class="tt-label">Diocese</span><span class="tt-value">${p.diocese || "—"}</span></div>`;
-    if (p.deanery) html += `<div class="tt-row"><span class="tt-label">Deanery</span><span class="tt-value">${p.deanery}</span></div>`;
-    if (p.bishop) html += `<div class="tt-row"><span class="tt-label">Bishop</span><span class="tt-value tt-bishop">${p.bishop}</span></div>`;
+    html += `<div class="tt-row"><span class="tt-label">Diocese</span><span class="tt-value">${escapeHtml(p.diocese) || "—"}</span></div>`;
+    if (p.deanery) html += `<div class="tt-row"><span class="tt-label">Deanery</span><span class="tt-value">${escapeHtml(p.deanery)}</span></div>`;
+    if (p.bishop) html += `<div class="tt-row"><span class="tt-label">Bishop</span><span class="tt-value tt-bishop">${escapeHtml(p.bishop)}</span></div>`;
 
     // ── Contact / clergy section ──
     if (p.clergy || p.phone || p.email || p.website) {
@@ -2621,11 +2628,11 @@
         const clergyHtml = formatClergyDisplay(p.clergy, true);
         html += `<div class="tt-row"><span class="tt-label">Clergy</span><span class="tt-value">${clergyHtml}</span></div>`;
       }
-      if (p.phone) html += `<div class="tt-row"><span class="tt-label">Phone</span><span class="tt-value"><a href="tel:${p.phone.replace(/[^0-9+]/g, '')}" class="tt-link">${p.phone}</a><button class="tt-copy-btn" onclick="navigator.clipboard.writeText('${p.phone}')">Copy</button></span></div>`;
-      if (p.email) html += `<div class="tt-row"><span class="tt-label">Email</span><span class="tt-value"><a href="mailto:${p.email}" class="tt-link tt-email">${p.email}</a></span></div>`;
+      if (p.phone) html += `<div class="tt-row"><span class="tt-label">Phone</span><span class="tt-value"><a href="tel:${p.phone.replace(/[^0-9+]/g, '')}" class="tt-link">${escapeHtml(p.phone)}</a><button class="tt-copy-btn" onclick="navigator.clipboard.writeText('${p.phone.replace(/[^0-9+() -]/g, '')}')">Copy</button></span></div>`;
+      if (p.email) html += `<div class="tt-row"><span class="tt-label">Email</span><span class="tt-value"><a href="mailto:${escapeHtml(p.email)}" class="tt-link tt-email">${escapeHtml(p.email)}</a></span></div>`;
       if (p.website) {
         const shortUrl = p.website.replace(/^https?:\/\//, "").replace(/\/$/, "");
-        html += `<div class="tt-row"><span class="tt-label">Website</span><span class="tt-value"><a href="${p.website}" target="_blank" class="tt-link">${shortUrl} ↗</a></span></div>`;
+        html += `<div class="tt-row"><span class="tt-label">Website</span><span class="tt-value"><a href="${escapeHtml(p.website)}" target="_blank" class="tt-link">${escapeHtml(shortUrl)} ↗</a></span></div>`;
       }
     }
 
@@ -2633,8 +2640,8 @@
     if (p.clusterId || p.source) {
       html += `<hr class="tt-divider">`;
       const metadata = [];
-      if (p.clusterId) metadata.push(`<span style="color:#9aa">Cluster #${p.clusterId}</span>`);
-      if (p.source) metadata.push(`<span class="tt-source">Source: ${p.source}</span>`);
+      if (p.clusterId) metadata.push(`<span style="color:#9aa">Cluster #${escapeHtml(p.clusterId)}</span>`);
+      if (p.source) metadata.push(`<span class="tt-source">Source: ${escapeHtml(p.source)}</span>`);
       html += `<div style="font-size:0.7rem;display:flex;gap:8px;flex-wrap:wrap">${metadata.join('')}</div>`;
     }
 

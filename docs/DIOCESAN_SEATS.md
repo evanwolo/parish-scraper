@@ -28,21 +28,6 @@ Each parish record in `output/all-parishes.json` that is located in a diocesan s
 }
 ```
 
-### Bishop Locations Reference
-
-A comprehensive reference file `bishop-locations.json` documents all major diocesan seats:
-
-```json
-{
-  "Diocese of Alaska": {
-    "seat": "Anchorage, AK",
-    "jurisdiction": "Orthodox Church in America (OCA)",
-    "type": "Metropolitan Archbishop",
-    "notes": "Covers all of Alaska"
-  }
-}
-```
-
 ## Coverage
 
 **111 churches** across North America have been marked with diocesan seat information, representing:
@@ -130,10 +115,6 @@ The diocesan seat information was researched comprehensively for all major Ortho
 ### Integration Pipeline
 
 ```
-bishop-locations.json
-        ↓
-add-bishop-seats.js (matching script)
-        ↓
 output/all-parishes.json (enriched with diocesanSeats)
         ↓
 src/routes/parishes.js (API endpoint)
@@ -163,8 +144,6 @@ Returns GeoJSON features for all parishes with geographic coordinates. Now inclu
 
 | File | Purpose |
 |------|---------|
-| `bishop-locations.json` | Reference data for all diocesan seats |
-| `add-bishop-seats.js` | Script that adds diocesanSeats to all-parishes.json |
 | `output/all-parishes.json` | Updated with diocesanSeats field (111 churches) |
 | `public/map.html` | Frontend with diocesan seat visualization |
 | `src/routes/parishes.js` | API endpoint serving diocesan seat data |

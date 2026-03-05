@@ -35,6 +35,45 @@ function getParishes() {
   return _parishCache;
 }
 
+// ── Cached file data (loaded once at startup) ─────────────────────────
+let _diocesanSeatsMap = null;
+let _europeanFeatures = null;
+
+function getDiocesanSeatsMap() {
+  if (_diocesanSeatsMap) return _diocesanSeatsMap;
+  _diocesanSeatsMap = {};
+  try {
+    const allParishesPath = path.join(__dirname, "..", "..", "output", "all-parishes.json");
+    if (fs.existsSync(allParishesPath)) {
+      const allParishes = JSON.parse(fs.readFileSync(allParishesPath, "utf-8"));
+      allParishes.forEach(p => {
+        if (p.diocesanSeats && p.diocesanSeats.length > 0) {
+          const key = `${p.city}|${p.state}`;
+          _diocesanSeatsMap[key] = p.diocesanSeats;
+        }
+      });
+    }
+  } catch (e) {
+    console.error("[api] Error loading diocesan seats:", e.message);
+  }
+  return _diocesanSeatsMap;
+}
+
+function getEuropeanFeatures() {
+  if (_europeanFeatures) return _europeanFeatures;
+  _europeanFeatures = [];
+  try {
+    const europeanPath = path.join(__dirname, "..", "..", "output", "european-churches-geojson.json");
+    if (fs.existsSync(europeanPath)) {
+      const europeanGeoJSON = JSON.parse(fs.readFileSync(europeanPath, "utf-8"));
+      _europeanFeatures = europeanGeoJSON.features || [];
+    }
+  } catch (e) {
+    console.warn("[api] Warning: Could not load European churches:", e.message);
+  }
+  return _europeanFeatures;
+}
+
 // ── API: return all parishes as JSON (cached) ────────────────────────
 router.get("/parishes", (_req, res) => res.json(getParishes()));
 
@@ -220,41 +259,8 @@ router.get("/map/points", (_req, res) => {
   if (!fs.existsSync(DB_PATH)) return res.status(404).json({ error: "Database not found. Run: npm run compute" });
   try {
     const db = getDb();
-     // Load diocesan seats lookup from all-parishes.json
-     let diocesanSeatsMap = {};
-     try {
-       const allParishesPath = path.join(__dirname, "..", "..", "output", "all-parishes.json");
-       if (fs.existsSync(allParishesPath)) {
-         const allParishes = JSON.parse(fs.readFileSync(allParishesPath, "utf-8"));
-         allParishes.forEach(p => {
-           if (p.diocesanSeats && p.diocesanSeats.length > 0) {
-             const key = `${p.city}|${p.state}`;
-             diocesanSeatsMap[key] = p.diocesanSeats;
-           }
-         });
-       }
-      } catch (e) {
-        console.error("[api/map/points] Error loading diocesan seats:", e.message);
-      }
-
-    // Load European churches
-    let europeanFeatures = [];
-    try {
-      const europeanPath = path.join(__dirname, "..", "..", "output", "european-churches-geojson.json");
-      console.error(`[DEBUG] Attempting to load European churches from: ${europeanPath}`);
-      console.error(`[DEBUG] File exists: ${fs.existsSync(europeanPath)}`);
-      if (fs.existsSync(europeanPath)) {
-        const europeanGeoJSON = JSON.parse(fs.readFileSync(europeanPath, "utf-8"));
-        europeanFeatures = europeanGeoJSON.features || [];
-        console.error(`[DEBUG] Loaded ${europeanFeatures.length} European churches`);
-        console.error(`[api/map/points] Loaded ${europeanFeatures.length} European churches`);
-      } else {
-        console.error(`[DEBUG] European churches file does not exist: ${europeanPath}`);
-      }
-    } catch (e) {
-      console.error(`[DEBUG] ERROR: ${e.message}`);
-      console.warn("[api/map/points] Warning: Could not load European churches:", e.message);
-    }
+    const diocesanSeatsMap = getDiocesanSeatsMap();
+    const europeanFeatures = getEuropeanFeatures();
 
     // Get North American parishes from database
     const rows = db.prepare("SELECT * FROM parishes WHERE lat IS NOT NULL AND lng IS NOT NULL").all();
@@ -274,9 +280,8 @@ router.get("/map/points", (_req, res) => {
           importance,
           patriarchate: patriarchate !== "Unknown" ? patriarchate : null,
           bishop: dioceseInfo?.bishop || null,
-          region: dioceseInfo?.region || null,
-             diocesanSeats: diocesanSeatsMap[seatKey] || null,
-          region: "North America"
+          region: dioceseInfo?.region || "North America",
+          diocesanSeats: diocesanSeatsMap[seatKey] || null
         },
         geometry: { type: "Point", coordinates: [r.lng, r.lat] },
       };
@@ -305,17 +310,8 @@ router.get("/map/meta", (_req, res) => {
       "SELECT DISTINCT diocese, jurisdiction FROM polygons WHERE tier = 1 ORDER BY jurisdiction, diocese"
     ).all();
     
-    // Count European churches if available
-    let europeanCount = 0;
-    try {
-      const europeanPath = path.join(__dirname, "..", "..", "output", "european-churches.json");
-      if (fs.existsSync(europeanPath)) {
-        const europeanChurches = JSON.parse(fs.readFileSync(europeanPath, "utf-8"));
-        europeanCount = europeanChurches.length || 0;
-      }
-    } catch (e) {
-      // Silently ignore if file not found
-    }
+    // Count European churches from cached data
+    const europeanCount = getEuropeanFeatures().length;
     
     res.json({
       stats: { 

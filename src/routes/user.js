@@ -151,6 +151,16 @@ router.delete("/visits/:id", requireAuth, (req, res) => {
 
 // ── Closest Parish ─────────────────────────────────────────────────
 
+function haversineDistance(lat1, lng1, lat2, lng2) {
+  const R = 3959; // Earth radius in miles
+  const toRad = (deg) => deg * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 // Get closest parish to user's home
 router.get("/closest-parish", requireAuth, (req, res) => {
   try {
@@ -181,48 +191,30 @@ router.get("/closest-parish", requireAuth, (req, res) => {
 
     const jurisdictionFilter = affiliationMap[profile.church_affiliation] || null;
 
-    // Calculate distance using Haversine formula with optional jurisdiction filter
-    let query = `
-      SELECT 
-        *,
-        (
-          3959 * acos(
-            cos(radians(?)) * cos(radians(lat)) * cos(radians(lng) - radians(?)) +
-            sin(radians(?)) * sin(radians(lat))
-          )
-        ) as distance
-      FROM parishes
-      WHERE lat IS NOT NULL AND lng IS NOT NULL
-    `;
+    // Fetch parishes and compute distance in JavaScript (better-sqlite3 lacks trig functions)
+    let query = `SELECT * FROM parishes WHERE lat IS NOT NULL AND lng IS NOT NULL`;
+    const params = [];
 
-    const params = [profile.home_lat, profile.home_lng, profile.home_lat];
-
-    // Add jurisdiction filter if affiliation is set
     if (jurisdictionFilter) {
       query += ` AND (jurisdiction LIKE ? OR patriarchate LIKE ?)`;
       params.push(`%${jurisdictionFilter}%`, `%${jurisdictionFilter}%`);
     }
 
-    query += ` ORDER BY distance LIMIT 10`;
-
-    const parishes = db.prepare(query).all(...params);
+    const rows = db.prepare(query).all(...params);
+    const parishes = rows
+      .map(r => ({ ...r, distance: haversineDistance(profile.home_lat, profile.home_lng, r.lat, r.lng) }))
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 10);
 
     // If no results with affiliation filter, fall back to all nearby parishes
     if (parishes.length === 0 && jurisdictionFilter) {
-      const fallbackParishes = db.prepare(`
-        SELECT 
-          *,
-          (
-            3959 * acos(
-              cos(radians(?)) * cos(radians(lat)) * cos(radians(lng) - radians(?)) +
-              sin(radians(?)) * sin(radians(lat))
-            )
-          ) as distance
-        FROM parishes
-        WHERE lat IS NOT NULL AND lng IS NOT NULL
-        ORDER BY distance
-        LIMIT 10
-      `).all(profile.home_lat, profile.home_lng, profile.home_lat);
+      const allRows = db.prepare(
+        "SELECT * FROM parishes WHERE lat IS NOT NULL AND lng IS NOT NULL"
+      ).all();
+      const fallbackParishes = allRows
+        .map(r => ({ ...r, distance: haversineDistance(profile.home_lat, profile.home_lng, r.lat, r.lng) }))
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 10);
 
       return res.json({ parishes: fallbackParishes, filtered: false, message: "No parishes of your affiliation found nearby. Showing all nearby parishes." });
     }
