@@ -18,6 +18,13 @@
     "rebuild": "node src/import.js --fresh",
     "serve": "node server.js",
     "compute": "node src/compute-map.js",
+    "snapshot": "node src/build-snapshots.js",
+    "snapshot:refresh": "npm run import:fresh && npm run compute && npm run snapshot",
+    "pipeline": "node pipeline.js",
+    "pipeline:quick": "node pipeline.js --from import",
+    "pipeline:full": "node pipeline.js --skip geocode",
+    "pipeline:serve": "node pipeline.js --skip geocode --serve",
+    "pipeline:dry": "node pipeline.js --dry-run",
     "postinstall": "npm run setup:db || true",
     "setup:db": "node -e \"const { initSchema, migrate } = require('./src/db'); try { initSchema(); migrate(); console.log('Database initialized'); } catch (e) { console.log('DB setup skipped:', e.message); }\"",
     "test": "echo \"Error: no test specified\" && exit 1"

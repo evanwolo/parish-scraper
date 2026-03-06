@@ -111,8 +111,8 @@ function mergeGroup(records) {
     }
   }
 
-  // Combine source tags
-  const sources = [...new Set(records.map((r) => r.source).filter(Boolean))];
+  // Combine source tags (split any already-joined sources to avoid duplicates)
+  const sources = [...new Set(records.flatMap((r) => (r.source || "").split(",").map(s => s.trim())).filter(Boolean))];
   merged.source = sources.join(", ");
 
   return merged;

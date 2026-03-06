@@ -44,6 +44,27 @@ const CA_PROVINCES = new Set([
   "AB", "BC", "MB", "NB", "NL", "NS", "NT", "NU", "ON", "PE", "QC", "SK", "YT",
 ]);
 
+// Canadian province full name -> abbreviation
+const CA_PROVINCE_FULL_TO_ABBR = {
+  alberta: "AB",
+  "british columbia": "BC",
+  manitoba: "MB",
+  "new brunswick": "NB",
+  "newfoundland and labrador": "NL",
+  "newfoundland & labrador": "NL",
+  "newfoundland": "NL",
+  "nova scotia": "NS",
+  "northwest territories": "NT",
+  nunavut: "NU",
+  ontario: "ON",
+  "prince edward island": "PE",
+  quebec: "QC",
+  "quebec province": "QC",
+  saskatchewan: "SK",
+  yukon: "YT",
+  "yukon territory": "YT",
+};
+
 // ── Jurisdiction canonical names ──────────────────────────────────────
 const JURISDICTION_CANONICAL = {
   // OCA
@@ -233,12 +254,16 @@ function sanitizeState(raw) {
 
   // Already a valid 2-letter US abbreviation?
   const upper = s.toUpperCase();
+  const compactUpper = upper.replace(/[^A-Z]/g, "");
   if (VALID_US_ABBRS.has(upper)) return upper;
   if (CA_PROVINCES.has(upper)) return upper;
+  if (compactUpper.length === 2 && VALID_US_ABBRS.has(compactUpper)) return compactUpper;
+  if (compactUpper.length === 2 && CA_PROVINCES.has(compactUpper)) return compactUpper;
 
   // Full state name → abbreviation
   const lower = s.toLowerCase();
   if (STATE_FULL_TO_ABBR[lower]) return STATE_FULL_TO_ABBR[lower];
+  if (CA_PROVINCE_FULL_TO_ABBR[lower]) return CA_PROVINCE_FULL_TO_ABBR[lower];
 
   // Return title-cased for non-US/CA regions (e.g. Haitian departments)
   return titleCase(s);
@@ -406,13 +431,157 @@ function sanitizeAddress(raw) {
 }
 
 /**
+ * Clergy title patterns for detecting person boundaries.
+ * Ordered longest-first so the regex engine matches compound titles
+ * (e.g. "V. Rev.") before their shorter parts ("Rev.").
+ */
+const CLERGY_TITLES = [
+  'The\\s+(?:Very\\s+)?Most\\s+Reverend',
+  'The\\s+Right\\s+Reverend',
+  'The\\s+Reverend',
+  'Protopresb(?:yter|\\.)',
+  'Archimandrite', 'Archmandrite',
+  'Archpriest',
+  'Protodeacon', 'Protodn\\.',
+  'Archdeacon', 'Archdn\\.',
+  'Hierodeacon',
+  'Sub-Deacon', 'Sbdn\\.', 'Subdeacon',
+  'Rassophore\\s+Monk',
+  'Monk-Subdeacon',
+  'Schemamonk-Reader', 'Schemamonk',
+  'Hieromonk', 'Hiermonk',
+  'Igumen',
+  'Novice-Reader',
+  'V\\.\\s*Rev\\.',
+  'Very\\s+Rev(?:erend|\\.)',
+  'Rev\\.', 'Reverend',
+  'Rev\\b',
+  'Fr\\.', 'Father',
+  'Priest',
+  'Deacon', 'Dn\\.',
+  'Abb(?:ot|ess)',
+  'Archbishop', 'Metropolitan', 'Bishop',
+  'Rassophore',
+  'Monk', 'Nun',
+  'Novice',
+  'Reader',
+  'Postulant',
+];
+const _clergyTitleRe = new RegExp(
+  '\\b(' + CLERGY_TITLES.join('|') + ')(?=\\s|[.;,]|$)', 'gi'
+);
+
+/**
+ * Split a single clergy string (no semicolons) into individual people
+ * by finding clergy-title boundaries.
+ */
+function splitClergyEntry(entry) {
+  const s = entry.trim();
+  if (!s) return [];
+
+  const positions = [];
+  _clergyTitleRe.lastIndex = 0;
+  let m;
+  while ((m = _clergyTitleRe.exec(s)) !== null) {
+    positions.push({ index: m.index, end: m.index + m[0].length, title: m[0] });
+  }
+
+  if (positions.length <= 1) return [s];
+
+  // Merge compound titles (consecutive titles with only whitespace between,
+  // e.g. "V. Rev. Fr." or "The Most Reverend Archbishop")
+  const personStarts = [{ ...positions[0] }];
+  for (let i = 1; i < positions.length; i++) {
+    const prev = positions[i - 1];
+    const curr = positions[i];
+    const between = s.substring(prev.end, curr.index);
+
+    if (/^\s*$/.test(between)) {
+      // Adjacent titles → same person's compound title
+      personStarts[personStarts.length - 1].end = curr.end;
+      continue;
+    }
+
+    // If the word after this title starts lowercase it's probably a role
+    // description ("Priest in Charge", "Metropolitan of …"), not a new person.
+    const afterTitle = s.substring(curr.end).trim();
+    if (afterTitle && /^[a-z]/.test(afterTitle)) {
+      continue;
+    }
+
+    // If the word immediately before this title is a role modifier
+    // ("acting", "senior", etc.) it's a description, not a new person.
+    const beforeText = s.substring(0, curr.index).trimEnd();
+    const lastWord = (beforeText.match(/\S+$/) || [''])[0].toLowerCase();
+    if (['acting', 'senior', 'junior', 'assistant', 'associate', 'deputy',
+         'former', 'convent', 'cathedral'].includes(lastWord)) {
+      continue;
+    }
+
+    personStarts.push({ ...curr });
+  }
+
+  if (personStarts.length <= 1) return [s];
+
+  // Split the string at person-start positions
+  const parts = [];
+  for (let i = 0; i < personStarts.length; i++) {
+    const start = i === 0 ? 0 : personStarts[i].index;
+    const end = i + 1 < personStarts.length ? personStarts[i + 1].index : s.length;
+    parts.push(s.substring(start, end).trim());
+  }
+  return parts.filter(Boolean);
+}
+
+/**
  * Sanitise a clergy name or list.
+ * Separates multiple clergy names with "; ", strips noise (phones,
+ * e-mails, warden info, mailing addresses).
  */
 function sanitizeClergy(raw) {
   let s = cleanStr(raw);
   if (!s) return "";
-  // Remove leading/trailing semicolons or commas
+
+  // Strip leading/trailing separators
   s = s.replace(/^[;,\s]+|[;,\s]+$/g, "");
+
+  // Strip "Served by:" prefix
+  s = s.replace(/^served\s+by\s*:?\s*/i, "");
+
+  // Strip phone numbers  (xxx) xxx-xxxx / xxx-xxx-xxxx / xxx.xxx.xxxx
+  s = s.replace(/\(?\d{3}\)?[\s.-]+\d{3}[\s.-]+\d{4}/g, "");
+
+  // Strip e-mail addresses
+  s = s.replace(/[\w.-]+@[\w.-]+\.\w+/g, "");
+
+  // Strip warden / warder lines (not clergy)
+  s = s.replace(/;?\s*(?:mission\s+|church\s+)?ward(?:en|er)(?:[ns])?:?\s*[^;]*/gi, "");
+
+  // Strip "mailing address: …" tails
+  s = s.replace(/;?\s*mailing\s+address\s*:.*$/i, "");
+
+  // Strip "Currently services held at – …" notes
+  s = s.replace(/currently\s+services?\s+held\s+at\s*[-–]?\s*[^;]*/i, "");
+
+  // Fix text jammed onto titles ("emeritus)Protodeacon" → "emeritus) Protodeacon")
+  s = s.replace(/([).])(?=[A-Z])/g, "$1 ");
+
+  // Fix title words jammed onto names ("PriestGeorge" → "Priest George")
+  s = s.replace(/\b(Priest|Deacon|Protodeacon|Archdeacon|Archpriest|Hieromonk|Hiermonk|Igumen|Archimandrite|Archmandrite|Bishop|Archbishop|Metropolitan|Abbot|Abbess|Monk|Nun|Novice|Reader|Postulant|Father|Rassophore|Subdeacon)(?=[A-Z])/g, "$1 ");
+
+  // Split by existing semicolons, then split each part on title boundaries
+  const entries = s.split(/;\s*/);
+  const result = [];
+  for (const entry of entries) {
+    result.push(...splitClergyEntry(entry));
+  }
+
+  // Rejoin and clean up
+  s = result.filter(Boolean).join("; ");
+  s = s.replace(/[.,]\s*(?=;)/g, "");  // strip orphan trailing punctuation before ";"
+  s = s.replace(/\s{2,}/g, " ");
+  s = s.replace(/^[;,\s]+|[;,\s]+$/g, "");
+
   return s;
 }
 
@@ -471,7 +640,11 @@ function sanitizeRecord(raw, source) {
       // If remaining parts > 1, check if the last is now a state
       if (parts.length >= 2) {
         const maybeSt = parts[parts.length - 1].toUpperCase();
-        if (VALID_US_ABBRS.has(maybeSt) || CA_PROVINCES.has(maybeSt) || STATE_FULL_TO_ABBR[parts[parts.length - 1].toLowerCase()]) {
+        const maybeStateLower = parts[parts.length - 1].toLowerCase();
+        if (VALID_US_ABBRS.has(maybeSt) ||
+            CA_PROVINCES.has(maybeSt) ||
+            STATE_FULL_TO_ABBR[maybeStateLower] ||
+            CA_PROVINCE_FULL_TO_ABBR[maybeStateLower]) {
           if (!rawState) rawState = parts.pop();
         }
       }
@@ -480,7 +653,10 @@ function sanitizeRecord(raw, source) {
       // Check if the last comma part is a US state
       const maybeSt = parts[parts.length - 1].toUpperCase();
       const maybeStLower = parts[parts.length - 1].toLowerCase();
-      if (parts.length === 2 && (VALID_US_ABBRS.has(maybeSt) || STATE_FULL_TO_ABBR[maybeStLower])) {
+      if (parts.length === 2 && (VALID_US_ABBRS.has(maybeSt) ||
+                                 CA_PROVINCES.has(maybeSt) ||
+                                 STATE_FULL_TO_ABBR[maybeStLower] ||
+                                 CA_PROVINCE_FULL_TO_ABBR[maybeStLower])) {
         rawCity = parts[0];
         if (!rawState) rawState = parts[1];
       } else {

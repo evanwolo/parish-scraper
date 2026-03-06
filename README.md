@@ -43,6 +43,23 @@ A comprehensive Node.js scraper that collects Orthodox parish data from **19+ pu
 npm install
 npm run scrape              # scrape ALL 12 sources + merge + deduplicate
 npm run scrape:retry        # retry failed scrapers automatically
+npm run snapshot:refresh    # rebuild DB + map + static frontend snapshots
+```
+
+### Static Snapshot Data Layer
+
+The frontend can now run as a standalone client from static JSON snapshots.
+
+- Live backend role: scrape, seed, refresh, update, and spot-check data
+- Static client role: read immutable snapshot payloads in `public/data/snapshots/`
+- Frontend load order: snapshot first, then fallback to live `/api/*` endpoints
+
+Commands:
+
+```bash
+npm run snapshot            # build static snapshot JSON from DB
+npm run snapshot:refresh    # import:fresh + compute + snapshot
+npm run pipeline            # full pipeline now includes snapshot stage
 ```
 
 ### Scrape Individual Sources
@@ -142,6 +159,8 @@ All HTTP requests include polite delays, retry logic with exponential back-off, 
 ```
 scrape.js                     # ⭐ Unified scraper CLI (all or individual sources)
 src/
+  build-snapshots.js         # generate frontend static snapshot payloads
+  snapshot-data.js           # shared live/static JSON data contract builders
   utils.js                    # shared HTTP client, CSV/JSON writers
   sanitize.js                 # data normalization
   dedup.js                    # intelligent deduplication & merging

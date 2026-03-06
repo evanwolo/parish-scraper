@@ -16,8 +16,11 @@
       --white: #fafafa;
       --text: #222;
       --text-muted: #666;
-      --border: #ddd;
-      --radius: 6px;
+      --border: #e0e0e0;
+      --radius: 8px;
+      --radius-lg: 12px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
       --font-body: "Space Grotesk", "Segoe UI", sans-serif;
       --font-display: "Fraunces", Georgia, serif;
     }
@@ -26,14 +29,14 @@
 
     body {
       font-family: var(--font-body);
-      background: radial-gradient(circle at top, #fff8e6 0%, #ffffff 45%, #f9f7f2 100%);
+      background: #f4f2ed;
       color: var(--text);
       line-height: 1.5;
     }
 
     /* ── Header ─────────────────────────────── */
     header {
-      background: var(--navy);
+      background: linear-gradient(135deg, var(--navy) 0%, #243044 100%);
       color: #fff;
       padding: 1.25rem 2rem;
       display: flex;
@@ -54,10 +57,113 @@
       color: #aab;
     }
 
+    /* ── Dashboard Cards ────────────────────── */
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      padding: 1.25rem 2rem;
+    }
+    .stat-card {
+      background: #fff;
+      border-radius: var(--radius-lg);
+      padding: 1.1rem 1.25rem;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .stat-card .stat-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+    .stat-card .stat-body { min-width: 0; }
+    .stat-card .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      font-family: var(--font-display);
+      line-height: 1.2;
+      color: var(--navy);
+    }
+    .stat-card .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-weight: 500;
+    }
+
+    /* ── Jurisdiction Distribution Panel ──── */
+    .distro-panel {
+      background: #fff;
+      border-radius: var(--radius-lg);
+      margin: 0 2rem 1rem;
+      padding: 1rem 1.25rem;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+    }
+    .distro-panel h3 {
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      font-weight: 600;
+    }
+    .distro-bar-container {
+      display: flex;
+      height: 14px;
+      border-radius: 7px;
+      overflow: hidden;
+      margin-bottom: 0.6rem;
+    }
+    .distro-bar-segment {
+      height: 100%;
+      transition: width 0.6s ease;
+      min-width: 2px;
+      position: relative;
+      cursor: pointer;
+    }
+    .distro-bar-segment:hover { filter: brightness(1.15); }
+    .distro-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem 1rem;
+      font-size: 0.75rem;
+    }
+    .distro-legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      cursor: pointer;
+      padding: 0.15rem 0.35rem;
+      border-radius: 4px;
+      transition: background 0.15s;
+    }
+    .distro-legend-item:hover { background: #f0ece0; }
+    .distro-legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+    .distro-legend-label { color: var(--text); }
+    .distro-legend-count { color: var(--text-muted); font-weight: 600; }
+
     /* ── Controls bar ───────────────────────── */
     .controls {
       background: #fff;
       border-bottom: 1px solid var(--border);
+      border-top: 1px solid var(--border);
       padding: 0.75rem 2rem;
       display: flex;
       gap: 0.75rem;
@@ -66,6 +172,7 @@
       position: sticky;
       top: 0;
       z-index: 10;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
     .search-wrap {
       position: relative;
@@ -80,9 +187,9 @@
       border-radius: var(--radius);
       font-size: 0.9rem;
       outline: none;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .search-wrap input[type="text"]:focus { border-color: var(--gold); }
+    .search-wrap input[type="text"]:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(197,163,68,0.12); }
     .search-clear {
       position: absolute;
       right: 6px;
@@ -227,46 +334,110 @@
     }
     table {
       width: 100%;
-      border-collapse: collapse;
+      border-collapse: separate;
+      border-spacing: 0;
       margin-top: 0.5rem;
-      font-size: 0.88rem;
+      font-size: 0.86rem;
+      background: #fff;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
     }
     thead th {
       background: var(--navy);
       color: #fff;
-      padding: 0.55rem 0.7rem;
+      padding: 0.65rem 0.8rem;
       text-align: left;
       white-space: nowrap;
       cursor: pointer;
       user-select: none;
       position: relative;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-weight: 500;
     }
     thead th:hover { background: var(--navy-light); }
     thead th .sort-arrow { margin-left: 4px; font-size: 0.7rem; opacity: 0.5; }
     thead th.sorted .sort-arrow { opacity: 1; color: var(--gold); }
-    tbody tr { border-bottom: 1px solid #eee; }
-    tbody tr:hover { background: #f8f6ee; }
+    tbody tr { border-bottom: 1px solid #f0eee8; transition: background 0.12s; }
+    tbody tr:nth-child(even) { background: #fdfcf9; }
+    tbody tr:hover { background: #f5f0e0; }
     td {
-      padding: 0.5rem 0.7rem;
-      vertical-align: top;
+      padding: 0.55rem 0.8rem;
+      vertical-align: middle;
       max-width: 300px;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     td a {
-      color: var(--gold);
+      color: var(--navy);
       text-decoration: none;
+      font-weight: 500;
+      transition: color 0.15s;
     }
-    td a:hover { text-decoration: underline; }
+    td a:hover { color: var(--gold); }
+    .parish-name-cell {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .parish-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+      letter-spacing: 0.02em;
+    }
+    .parish-name-text {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .jurisdiction-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.55rem;
+      border-radius: 99px;
+      white-space: nowrap;
+      letter-spacing: 0.01em;
+    }
     .source-tag {
       display: inline-block;
       background: var(--navy);
       color: #fff;
-      font-size: 0.7rem;
-      padding: 0.1rem 0.45rem;
-      border-radius: 3px;
+      font-size: 0.68rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 99px;
       white-space: nowrap;
+      letter-spacing: 0.02em;
     }
+    .completeness-dots {
+      display: inline-flex;
+      gap: 3px;
+      align-items: center;
+    }
+    .completeness-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #e0ddd4;
+      position: relative;
+    }
+    .completeness-dot.filled { background: #4caf50; }
+    .completeness-dot.warn { background: #ff9800; }
+    .completeness-dot[title] { cursor: help; }
     mark {
       background: #ffe680;
       color: inherit;
@@ -295,9 +466,13 @@
 
     /* ── Responsive ─────────────────────────── */
     @media (max-width: 768px) {
-      header, .controls, .table-wrap, .active-filters { padding-left: 1rem; padding-right: 1rem; }
+      header, .controls, .table-wrap, .active-filters, .dashboard { padding-left: 1rem; padding-right: 1rem; }
+      .distro-panel { margin-left: 1rem; margin-right: 1rem; }
       table { font-size: 0.8rem; }
       .search-help-popup { min-width: 260px; }
+      .dashboard { grid-template-columns: repeat(2, 1fr); }
+      .stat-card .stat-value { font-size: 1.2rem; }
+    }
     }
     @media (max-width: 640px) {
       .controls { gap: 0.5rem; }
@@ -318,9 +493,49 @@
   <h1>☦ <span>Orthodox</span> Parish Directory</h1>
   <div style="display: flex; align-items: center; gap: 1rem;">
     <div class="header-stats" id="stats">Loading…</div>
+    <a href="/map.html" style="color: #ccd; text-decoration: none; font-size: 0.85rem; white-space: nowrap;">Map View</a>
     <a href="/auth.html" id="auth-link" style="color: var(--gold); text-decoration: none; font-size: 0.85rem; white-space: nowrap;">Login</a>
   </div>
 </header>
+
+<!-- Dashboard Stats -->
+<div class="dashboard" id="dashboard" style="display:none">
+  <div class="stat-card">
+    <div class="stat-icon" style="background: #e8f0fe; color: #1a73e8;">⛪</div>
+    <div class="stat-body">
+      <div class="stat-value" id="statTotal">0</div>
+      <div class="stat-label">Total Parishes</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background: #fef3e0; color: #e8a317;">✝</div>
+    <div class="stat-body">
+      <div class="stat-value" id="statJurisdictions">0</div>
+      <div class="stat-label">Jurisdictions</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background: #e6f4ea; color: #34a853;">🗺</div>
+    <div class="stat-body">
+      <div class="stat-value" id="statStates">0</div>
+      <div class="stat-label">States / Regions</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background: #f3e5f5; color: #8e24aa;">📊</div>
+    <div class="stat-body">
+      <div class="stat-value" id="statSources">0</div>
+      <div class="stat-label">Data Sources</div>
+    </div>
+  </div>
+</div>
+
+<!-- Jurisdiction Distribution -->
+<div class="distro-panel" id="distroPanel" style="display:none">
+  <h3>Jurisdiction Distribution</h3>
+  <div class="distro-bar-container" id="distroBar"></div>
+  <div class="distro-legend" id="distroLegend"></div>
+</div>
 
 <div class="controls" style="position:sticky;top:0;z-index:10;">
   <div class="search-wrap">
@@ -363,8 +578,8 @@
         <th data-col="state">State <span class="sort-arrow">▲</span></th>
         <th data-col="jurisdiction">Jurisdiction <span class="sort-arrow">▲</span></th>
         <th data-col="diocese">Diocese <span class="sort-arrow">▲</span></th>
-        <th data-col="deanery">Deanery <span class="sort-arrow">▲</span></th>
         <th data-col="phone">Phone <span class="sort-arrow">▲</span></th>
+        <th>Data</th>
         <th data-col="source">Source <span class="sort-arrow">▲</span></th>
       </tr>
     </thead>
@@ -379,9 +594,31 @@
   let filtered = [];
   let sortCol = "name";
   let sortAsc = true;
-  let highlightTerms = [];  // plain terms for highlighting
+  let highlightTerms = [];
 
   const SEARCHABLE_FIELDS = ["name","city","state","jurisdiction","diocese","deanery","address","clergy","phone"];
+
+  // ── Jurisdiction color palette ──────────────
+  const JUR_COLORS = [
+    "#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed",
+    "#db2777", "#0891b2", "#65a30d", "#ea580c", "#4f46e5",
+    "#be185d", "#0d9488", "#ca8a04", "#6366f1", "#e11d48",
+    "#0284c7", "#16a34a", "#9333ea", "#c2410c", "#7c2d12"
+  ];
+  const jurColorMap = new Map();
+  function getJurColor(jur) {
+    if (!jur) return "#9ca3af";
+    if (jurColorMap.has(jur)) return jurColorMap.get(jur);
+    const idx = jurColorMap.size % JUR_COLORS.length;
+    jurColorMap.set(jur, JUR_COLORS[idx]);
+    return JUR_COLORS[idx];
+  }
+
+  function getInitials(name) {
+    if (!name) return "?";
+    const words = name.replace(/^(st\.?|holy|the|church of|parish of)\s+/i, "").trim().split(/\s+/);
+    return words.slice(0, 2).map(w => w[0]).join("").toUpperCase();
+  }
 
   const $search = document.getElementById("search");
   const $searchClear = document.getElementById("searchClear");
@@ -399,6 +636,8 @@
   const $stats = document.getElementById("stats");
   const $activeFilters = document.getElementById("activeFilters");
   const $exportBtn = document.getElementById("exportBtn");
+  const $dashboard = document.getElementById("dashboard");
+  const $distroPanel = document.getElementById("distroPanel");
 
   // ── Search help toggle ──────────────────────
   $searchHelpBtn.addEventListener("click", (e) => {
@@ -434,39 +673,32 @@
   });
 
   // ── Parse search query into tokens ──────────
-  // Supports: field:value, "exact phrase", bare words (AND logic)
   function parseQuery(raw) {
     const tokens = [];
     const re = /(\w+):("([^"]*)"|([\S]+))|"([^"]*)"|(\S+)/g;
     let m;
     while ((m = re.exec(raw)) !== null) {
       if (m[1]) {
-        // field:value
         const field = m[1].toLowerCase();
         const value = (m[3] !== undefined ? m[3] : m[4]).toLowerCase();
         tokens.push({ type: "field", field, value });
       } else if (m[5] !== undefined) {
-        // "exact phrase"
         tokens.push({ type: "phrase", value: m[5].toLowerCase() });
       } else if (m[6]) {
-        // bare word
         tokens.push({ type: "word", value: m[6].toLowerCase() });
       }
     }
     return tokens;
   }
 
-  // Check if a record matches all query tokens
   function matchRecord(record, tokens) {
     for (const tok of tokens) {
       if (tok.type === "field") {
-        // Match against specific field (or fields starting with prefix)
         const matchedField = SEARCHABLE_FIELDS.find(f => f.startsWith(tok.field));
         if (matchedField) {
           const val = (record[matchedField] || "").toLowerCase();
           if (!val.includes(tok.value)) return false;
         } else {
-          // Unknown field — treat as generic word "field:value"
           const hay = buildHay(record);
           if (!hay.includes(tok.field + ":" + tok.value) && !hay.includes(tok.value)) return false;
         }
@@ -474,7 +706,6 @@
         const hay = buildHay(record);
         if (!hay.includes(tok.value)) return false;
       } else {
-        // bare word: must appear somewhere
         const hay = buildHay(record);
         if (!hay.includes(tok.value)) return false;
       }
@@ -482,7 +713,6 @@
     return true;
   }
 
-  // Build searchable haystack string for a record (cached)
   const hayCache = new WeakMap();
   function buildHay(record) {
     if (hayCache.has(record)) return hayCache.get(record);
@@ -491,16 +721,96 @@
     return hay;
   }
 
-  // ── Fetch data ──────────────────────────────
-  fetch("/api/parishes")
-    .then((r) => r.json())
+  // ── Build dashboard ─────────────────────────
+  function buildDashboard(data) {
+    const total = data.length;
+    const jurisdictions = new Set(data.map(d => d.jurisdiction).filter(Boolean));
+    const states = new Set(data.map(d => d.state).filter(Boolean));
+    const sources = new Set(data.flatMap(d => (d.source || "").split(",").map(s => s.trim())).filter(Boolean));
+    document.getElementById("statTotal").textContent = total.toLocaleString();
+    document.getElementById("statJurisdictions").textContent = jurisdictions.size;
+    document.getElementById("statStates").textContent = states.size;
+    document.getElementById("statSources").textContent = sources.size;
+
+    $dashboard.style.display = "";
+
+    // Build jurisdiction distribution bar
+    const jurCounts = {};
+    data.forEach(d => {
+      const j = d.jurisdiction || "Unknown";
+      jurCounts[j] = (jurCounts[j] || 0) + 1;
+    });
+    const sorted = Object.entries(jurCounts).sort((a, b) => b[1] - a[1]);
+
+    // Assign colors in order of frequency
+    sorted.forEach(([jur]) => getJurColor(jur));
+
+    const barHtml = sorted.map(([jur, count]) => {
+      const pct = ((count / total) * 100).toFixed(1);
+      const color = getJurColor(jur);
+      return `<div class="distro-bar-segment" style="width:${pct}%;background:${color}" title="${esc(jur)}: ${count} (${pct}%)"></div>`;
+    }).join("");
+    document.getElementById("distroBar").innerHTML = barHtml;
+
+    const legendHtml = sorted.slice(0, 12).map(([jur, count]) => {
+      const color = getJurColor(jur);
+      const shortName = jur.length > 35 ? jur.slice(0, 33) + "…" : jur;
+      return `<span class="distro-legend-item" data-jur="${esc(jur)}"><span class="distro-legend-dot" style="background:${color}"></span><span class="distro-legend-label">${esc(shortName)}</span> <span class="distro-legend-count">${count}</span></span>`;
+    }).join("");
+    const remaining = sorted.length - 12;
+    document.getElementById("distroLegend").innerHTML = legendHtml + (remaining > 0 ? `<span class="distro-legend-item" style="color:var(--text-muted)">+${remaining} more</span>` : "");
+
+    // Click legend item to filter
+    document.querySelectorAll(".distro-legend-item[data-jur]").forEach(el => {
+      el.addEventListener("click", () => {
+        $jurisdiction.value = el.dataset.jur;
+        applyFilters();
+      });
+    });
+
+    $distroPanel.style.display = "";
+  }
+
+  // ── Fetch data (snapshot-first) ─────────────
+  const SNAPSHOT_BASE = "/data/snapshots";
+  const forceLiveData = new URLSearchParams(window.location.search).get("data") === "live";
+
+  async function fetchJson(url, label) {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`${label}: ${response.status} ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  async function loadParishes() {
+    const snapshotUrl = `${SNAPSHOT_BASE}/parishes.json`;
+    if (!forceLiveData) {
+      try {
+        console.log("[data-layer] parishes: snapshot");
+        return await fetchJson(snapshotUrl, "parishes snapshot");
+      } catch (snapshotErr) {
+        console.warn("[data-layer] snapshot unavailable, using live API", snapshotErr.message);
+      }
+    }
+
+    try {
+      console.log("[data-layer] parishes: live API");
+      return await fetchJson("/api/parishes", "parishes live");
+    } catch (liveErr) {
+      if (forceLiveData) throw liveErr;
+      console.log("[data-layer] parishes: snapshot fallback");
+      return fetchJson(snapshotUrl, "parishes snapshot fallback");
+    }
+  }
+
+  loadParishes()
     .then((data) => {
       allData = data;
       $loading.style.display = "none";
       $table.style.display = "";
 
-      // Populate source filter
-      const sources = [...new Set(data.map((d) => d.source).filter(Boolean))].sort();
+      const sources = [...new Set(data.flatMap((d) => (d.source || "").split(",").map(s => s.trim())).filter(Boolean))].sort();
       sources.forEach((s) => {
         const o = document.createElement("option");
         o.value = s;
@@ -508,7 +818,6 @@
         $source.appendChild(o);
       });
 
-      // Populate jurisdiction filter
       const jurisdictions = [...new Set(data.map((d) => d.jurisdiction).filter(Boolean))].sort();
       jurisdictions.forEach((j) => {
         const o = document.createElement("option");
@@ -517,7 +826,6 @@
         $jurisdiction.appendChild(o);
       });
 
-      // Populate state filter
       const states = [...new Set(data.map((d) => d.state).filter(Boolean))].sort();
       states.forEach((s) => {
         const o = document.createElement("option");
@@ -526,11 +834,12 @@
         $state.appendChild(o);
       });
 
-      $stats.textContent = `${data.length} parishes from ${sources.length} sources`;
+      $stats.textContent = `${data.length.toLocaleString()} parishes · ${sources.length} sources`;
+      buildDashboard(data);
       applyFilters();
     })
-    .catch(() => {
-      $loading.innerHTML = "Failed to load parish data. Make sure you've run the scraper first.";
+    .catch((err) => {
+      $loading.innerHTML = `Failed to load parish data. ${esc(err.message || "")}`;
     });
 
   // ── Filtering ───────────────────────────────
@@ -543,13 +852,12 @@
 
     const tokens = parseQuery(raw);
 
-    // Collect plain terms for highlighting
     highlightTerms = tokens
       .map(t => t.value)
       .filter(v => v.length > 0);
 
     filtered = allData.filter((r) => {
-      if (src && r.source !== src) return false;
+      if (src && !(r.source || "").split(",").map(s => s.trim()).includes(src)) return false;
       if (jur && r.jurisdiction !== jur) return false;
       if (st && r.state !== st) return false;
       if (tokens.length > 0 && !matchRecord(r, tokens)) return false;
@@ -637,33 +945,51 @@
 
   // ── Rendering ───────────────────────────────
   function render() {
-    $badge.textContent = filtered.length + " shown";
+    $badge.textContent = filtered.length.toLocaleString() + " shown";
     $empty.style.display = filtered.length === 0 ? "" : "none";
     $table.style.display = filtered.length === 0 ? "none" : "";
 
-    // Cap at 500 rows for perf
     const max = 500;
     const slice = filtered.slice(0, max);
 
     const html = slice.map((r) => {
       const nameHtml = highlight(r.name);
-      const nameCell = r.website
-        ? `<a href="${esc(r.website)}" target="_blank" rel="noopener">${nameHtml}</a>`
-        : nameHtml;
+      const jurColor = getJurColor(r.jurisdiction);
+      const initials = getInitials(r.name);
+      const nameCell = `<div class="parish-name-cell"><span class="parish-avatar" style="background:${jurColor}">${initials}</span><span class="parish-name-text">${r.website ? `<a href="${esc(r.website)}" target="_blank" rel="noopener">${nameHtml}</a>` : nameHtml}</span></div>`;
+
+      // Jurisdiction pill
+      const jurShort = (r.jurisdiction || "").length > 28 ? (r.jurisdiction || "").slice(0, 26) + "…" : (r.jurisdiction || "");
+      const jurPill = r.jurisdiction
+        ? `<span class="jurisdiction-pill" style="background:${jurColor}18;color:${jurColor};border:1px solid ${jurColor}33">${highlight(jurShort)}</span>`
+        : `<span style="color:#ccc">—</span>`;
+
+      // Data completeness dots
+      const hasPhone = !!(r.phone);
+      const hasWebsite = !!(r.website);
+      const hasCoords = !!(r.lat && r.lng);
+      const hasAddress = !!(r.address);
+      const dots = `<span class="completeness-dots">`
+        + `<span class="completeness-dot ${hasCoords ? 'filled' : ''}" title="${hasCoords ? '📍 Geocoded' : '⚠ No coordinates'}"></span>`
+        + `<span class="completeness-dot ${hasPhone ? 'filled' : ''}" title="${hasPhone ? '📞 Has phone' : '⚠ No phone'}"></span>`
+        + `<span class="completeness-dot ${hasWebsite ? 'filled' : ''}" title="${hasWebsite ? '🌐 Has website' : '⚠ No website'}"></span>`
+        + `<span class="completeness-dot ${hasAddress ? 'filled' : ''}" title="${hasAddress ? '🏠 Has address' : '⚠ No address'}"></span>`
+        + `</span>`;
+
       return `<tr>
         <td>${nameCell}</td>
         <td>${highlight(r.city)}</td>
         <td>${highlight(r.state)}</td>
-        <td>${highlight(r.jurisdiction)}</td>
+        <td>${jurPill}</td>
         <td>${highlight(r.diocese)}</td>
-        <td>${highlight(r.deanery)}</td>
         <td>${highlight(r.phone)}</td>
-        <td><span class="source-tag">${esc(r.source)}</span></td>
+        <td>${dots}</td>
+        <td>${(r.source||"").split(",").map(s=>s.trim()).filter(Boolean).map(s=>`<span class="source-tag">${esc(s)}</span>`).join(" ")}</td>
       </tr>`;
     }).join("");
 
     $tbody.innerHTML = html + (filtered.length > max
-      ? `<tr><td colspan="8" style="text-align:center;color:#999;padding:1rem;">Showing first ${max} of ${filtered.length} results. Narrow your search to see more.</td></tr>`
+      ? `<tr><td colspan="8" style="text-align:center;color:#999;padding:1rem;">Showing first ${max} of ${filtered.length.toLocaleString()} results. Narrow your search to see more.</td></tr>`
       : "");
   }
 

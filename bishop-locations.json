@@ -1,0 +1,130 @@
+{
+  "bishopLocations": {
+    "Diocese of Alaska": {
+      "seat": "Anchorage, AK",
+      "jurisdiction": "Orthodox Church in America (OCA)",
+      "type": "Metropolitan Archbishop",
+      "notes": "Covers all of Alaska"
+    },
+    "Diocese of Canada": {
+      "seat": "Toronto, ON",
+      "jurisdiction": "Orthodox Church in America (OCA)",
+      "type": "Metropolitan",
+      "notes": "Covers all of Canada"
+    },
+    "Diocese of the South": {
+      "seat": "Atlanta, GA",
+      "jurisdiction": "Orthodox Church in America (OCA)",
+      "type": "Archbishop",
+      "notes": "Covers southeastern USA"
+    },
+    "Diocese of the Midwest": {
+      "seat": "Minneapolis, MN",
+      "jurisdiction": "Orthodox Church in America (OCA)",
+      "type": "Metropolitan",
+      "notes": "Covers midwest USA"
+    },
+    "Diocese of New England": {
+      "seat": "Boston, MA",
+      "jurisdiction": "Orthodox Church in America (OCA)",
+      "type": "Bishop",
+      "notes": "Covers New England states"
+    },
+    "Diocese of New York and New Jersey": {
+      "seat": "New York, NY",
+      "jurisdiction": "Orthodox Church in America (OCA)",
+      "type": "Metropolitan/Archbishop",
+      "notes": "Covers NY and NJ"
+    },
+    "Diocese of Washington": {
+      "seat": "Washington, DC",
+      "jurisdiction": "Orthodox Church in America (OCA)",
+      "type": "Archbishop",
+      "notes": "Covers DC and surrounding areas"
+    },
+    "Diocese of the Southwest": {
+      "seat": "Phoenix, AZ",
+      "jurisdiction": "Orthodox Church in America (OCA)",
+      "type": "Bishop",
+      "notes": "Covers southwestern USA"
+    },
+    "Diocese of Rapid City": {
+      "seat": "Rapid City, SD",
+      "jurisdiction": "Orthodox Church in America (OCA)",
+      "type": "Bishop",
+      "notes": "Missionary diocese"
+    },
+    "Archdiocese of America": {
+      "seat": "New York, NY",
+      "jurisdiction": "Greek Orthodox Archdiocese of America (GOARCH)",
+      "type": "Archbishop/Primate",
+      "notes": "Primate of all North and South America"
+    },
+    "Metropolia of Boston": {
+      "seat": "Boston, MA",
+      "jurisdiction": "Greek Orthodox Archdiocese of America (GOARCH)",
+      "type": "Metropolitan",
+      "notes": "Eastern jurisdiction"
+    },
+    "Metropolia of Chicago": {
+      "seat": "Chicago, IL",
+      "jurisdiction": "Greek Orthodox Archdiocese of America (GOARCH)",
+      "type": "Metropolitan",
+      "notes": "Midwest jurisdiction"
+    },
+    "Metropolia of Denver": {
+      "seat": "Denver, CO",
+      "jurisdiction": "Greek Orthodox Archdiocese of America (GOARCH)",
+      "type": "Metropolitan",
+      "notes": "Western USA jurisdiction"
+    },
+    "Metropolia of Pittsburgh": {
+      "seat": "Pittsburgh, PA",
+      "jurisdiction": "Greek Orthodox Archdiocese of America (GOARCH)",
+      "type": "Metropolitan",
+      "notes": "Central USA jurisdiction"
+    },
+    "Metropolia of San Francisco": {
+      "seat": "San Francisco, CA",
+      "jurisdiction": "Greek Orthodox Archdiocese of America (GOARCH)",
+      "type": "Metropolitan",
+      "notes": "Pacific coast jurisdiction"
+    },
+    "Antiochian Archdiocese": {
+      "seat": "Englewood, NJ",
+      "jurisdiction": "Antiochian Orthodox Christian Archdiocese of North America",
+      "type": "Archbishop/Primate",
+      "notes": "Primate of Antiochian church in North America"
+    },
+    "Serbian Orthodox Metropolitanate": {
+      "seat": "Libertyville, IL",
+      "jurisdiction": "Serbian Orthodox Church in North and South America",
+      "type": "Metropolitan",
+      "notes": "Principal see of Serbian Orthodox"
+    },
+    "Romanian Orthodox Archdiocese": {
+      "seat": "Jackson, MI",
+      "jurisdiction": "Romanian Orthodox Archdiocese in the Americas",
+      "type": "Archbishop/Primate",
+      "notes": "Primate of Romanian Orthodox"
+    },
+    "Ukrainian Orthodox Church Metropolia": {
+      "seat": "Parma, OH",
+      "jurisdiction": "Ukrainian Orthodox Church of the USA",
+      "type": "Metropolitan",
+      "notes": "Principal see of Ukrainian Orthodox"
+    },
+    "Bulgarian Orthodox Diocese": {
+      "seat": "New York, NY",
+      "jurisdiction": "Bulgarian Eastern Orthodox Diocese of the USA, Canada, and Australia",
+      "type": "Bishop",
+      "notes": "Episcopal see for Bulgarian Orthodox"
+    },
+    "American Carpatho-Russian Orthodox Diocesan See": {
+      "seat": "Johnstown, PA",
+      "jurisdiction": "American Carpatho-Russian Orthodox Diocese",
+      "type": "Bishop",
+      "notes": "Episcopal see for Carpatho-Russian Orthodox"
+    }
+  }
+}

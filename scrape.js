@@ -102,10 +102,9 @@ async function scrapeAll() {
     }
   };
 
-  console.log("═══ PHASE 1: SCRAPING SOURCES ═══\n");
+  console.log("═══ PHASE 1: SCRAPING SOURCES (CONCURRENT) ═══\n");
 
-  for (const key of sources) {
-    console.log(`\n┌─ ${key.toUpperCase()} ${"─".repeat(60 - key.length)}`);
+  const scrapePromises = sources.map(async (key) => {
     const start = Date.now();
 
     try {
@@ -114,33 +113,32 @@ async function scrapeAll() {
       const data = raw.map((r) => sanitizeRecord(r));
       const elapsed = ((Date.now() - start) / 1000).toFixed(1);
 
-      console.log(`└─ ✓ ${key}: ${data.length} parishes (${elapsed}s)`);
-      summary.push({
-        source: key,
-        count: data.length,
-        time: `${elapsed}s`,
-        status: "✓ SUCCESS",
-      });
-      allData.push(...data);
+      console.log(`  ✓ ${key}: ${data.length} parishes (${elapsed}s)`);
+      return { key, data, elapsed, ok: true };
     } catch (err) {
       const elapsed = ((Date.now() - start) / 1000).toFixed(1);
-      console.error(`└─ ✗ ${key} FAILED: ${err.message} (${elapsed}s)`);
-      summary.push({
-        source: key,
-        count: 0,
-        time: `${elapsed}s`,
-        status: `✗ ${err.message.substring(0, 30)}`,
-      });
-      failed.push({ key, error: err });
+      console.error(`  ✗ ${key} FAILED: ${err.message} (${elapsed}s)`);
+      return { key, data: [], elapsed, ok: false, error: err };
+    }
+  });
+
+  const results = await Promise.allSettled(scrapePromises);
+
+  for (const settled of results) {
+    const r = settled.status === "fulfilled" ? settled.value : { key: "?", data: [], elapsed: "0", ok: false, error: settled.reason };
+    if (r.ok) {
+      summary.push({ source: r.key, count: r.data.length, time: `${r.elapsed}s`, status: "✓ SUCCESS" });
+      allData.push(...r.data);
+    } else {
+      summary.push({ source: r.key, count: 0, time: `${r.elapsed}s`, status: `✗ ${(r.error?.message || "unknown").substring(0, 30)}` });
+      failed.push({ key: r.key, error: r.error });
     }
   }
 
   if (RETRY_FAILED_SCRAPERS && failed.length > 0) {
-    console.log("\n\n═══ PHASE 2: RETRYING FAILED SCRAPERS ═══\n");
+    console.log("\n\n═══ PHASE 2: RETRYING FAILED SCRAPERS (CONCURRENT) ═══\n");
 
-    const stillFailed = [];
-    for (const { key } of failed) {
-      console.log(`\n┌─ RETRY: ${key.toUpperCase()} ${"─".repeat(55 - key.length)}`);
+    const retryPromises = failed.map(async ({ key }) => {
       const start = Date.now();
 
       try {
@@ -149,19 +147,30 @@ async function scrapeAll() {
         const data = raw.map((r) => sanitizeRecord(r));
         const elapsed = ((Date.now() - start) / 1000).toFixed(1);
 
-        console.log(`└─ ✓ ${key}: ${data.length} parishes (${elapsed}s) [RETRY SUCCESS]`);
-
-        const summaryEntry = summary.find((s) => s.source === key);
-        if (summaryEntry) {
-          summaryEntry.count = data.length;
-          summaryEntry.time = `${elapsed}s`;
-          summaryEntry.status = "✓ SUCCESS (retry)";
-        }
-        allData.push(...data);
+        console.log(`  ✓ ${key}: ${data.length} parishes (${elapsed}s) [RETRY SUCCESS]`);
+        return { key, data, elapsed, ok: true };
       } catch (err) {
         const elapsed = ((Date.now() - start) / 1000).toFixed(1);
-        console.error(`└─ ✗ ${key} STILL FAILED: ${err.message} (${elapsed}s)`);
-        stillFailed.push(key);
+        console.error(`  ✗ ${key} STILL FAILED: ${err.message} (${elapsed}s)`);
+        return { key, data: [], elapsed, ok: false };
+      }
+    });
+
+    const retryResults = await Promise.allSettled(retryPromises);
+    const stillFailed = [];
+
+    for (const settled of retryResults) {
+      const r = settled.status === "fulfilled" ? settled.value : { key: "?", ok: false };
+      if (r.ok) {
+        const summaryEntry = summary.find((s) => s.source === r.key);
+        if (summaryEntry) {
+          summaryEntry.count = r.data.length;
+          summaryEntry.time = `${r.elapsed}s`;
+          summaryEntry.status = "✓ SUCCESS (retry)";
+        }
+        allData.push(...r.data);
+      } else {
+        stillFailed.push(r.key);
       }
     }
 
@@ -279,8 +288,12 @@ async function scrapeAll() {
   }
 }
 
-scrapeAll().catch((err) => {
-  console.error("\n✗ FATAL ERROR:", err.message);
-  console.error(err.stack);
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  scrapeAll().catch((err) => {
+    console.error("\n✗ FATAL ERROR:", err.message);
+    console.error(err.stack);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = { scrapeAll };

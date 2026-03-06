@@ -7,7 +7,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
 
   <!-- MapLibre GL (free, no API key) -->
   <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
@@ -22,23 +22,23 @@
   <style>
     :root {
       --gold: #c5a344;
-      --gold-light: #f5ecd0;
       --navy: #1a2332;
       --navy-light: #253346;
       --white: #fafafa;
       --text: #222;
-      --text-muted: #666;
-      --border: #ddd;
-      --radius: 6px;
-      --font-body: "Space Grotesk", "Segoe UI", sans-serif;
-      --font-display: "Fraunces", Georgia, serif;
+      --text-muted: #889;
+      --label: #9aa8b8;
+      --border: rgba(255,255,255,0.08);
+      --panel-bg: rgba(20,26,36,0.92);
+      --radius: 8px;
+      --font: "Space Grotesk", "Segoe UI", sans-serif;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { width: 100%; height: 100%; overflow: hidden; }
 
     body {
-      font-family: var(--font-body);
+      font-family: var(--font);
       background: #111;
       color: var(--text);
       display: flex;
@@ -49,7 +49,8 @@
     header {
       background: var(--navy);
       color: #fff;
-      padding: 0.6rem 1.5rem;
+      padding: 0 1.5rem;
+      height: 44px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -57,12 +58,12 @@
       gap: 0.5rem;
       z-index: 20;
       position: relative;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
     }
     header h1 {
-      font-size: 1.1rem;
+      font-size: 1rem;
       font-weight: 600;
-      letter-spacing: 0.02em;
-      font-family: var(--font-display);
+      letter-spacing: 0.01em;
     }
     header h1 span { color: var(--gold); }
     .header-right {
@@ -75,16 +76,15 @@
       color: #aab;
     }
     .nav-links a {
-      color: var(--gold);
+      color: #ccd;
       text-decoration: none;
-      font-size: 0.82rem;
-      padding: 0.3rem 0.6rem;
-      border: 1px solid rgba(197,163,68,0.3);
-      border-radius: var(--radius);
-      transition: background 0.15s;
+      font-size: 0.78rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      transition: color 0.15s;
     }
     .nav-links a:hover {
-      background: rgba(197,163,68,0.15);
+      color: #fff;
     }
 
     /* ── Map container ──────────────────────── */
@@ -101,139 +101,201 @@
       position: absolute;
       top: 10px;
       left: 10px;
-      background: rgba(26,35,50,0.92);
-      backdrop-filter: blur(6px);
+      background: rgba(16,20,28,0.88);
+      backdrop-filter: blur(8px);
       color: #fff;
-      padding: 10px 14px;
       border-radius: var(--radius);
-      font-size: 0.75rem;
+      border: 1px solid rgba(255,255,255,0.06);
+      font-size: 0.76rem;
       max-height: calc(100vh - 120px);
       overflow-y: auto;
       z-index: 15;
-      min-width: 220px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      min-width: 160px;
+      transition: all 0.2s ease;
+    }
+    #legend.collapsed #legend-items { display: none; }
+    #legend.collapsed { min-width: 0; }
+    .legend-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px 6px;
+      cursor: pointer;
+      user-select: none;
     }
     #legend h3 {
-      font-size: 0.82rem;
-      margin-bottom: 6px;
-      color: var(--gold);
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      padding-bottom: 4px;
+      font-size: 0.72rem;
+      margin: 0;
+      color: var(--label);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
     }
+    .legend-toggle {
+      background: none;
+      border: none;
+      color: var(--label);
+      font-size: 0.7rem;
+      cursor: pointer;
+      padding: 2px;
+      transition: transform 0.2s;
+    }
+    #legend.collapsed .legend-toggle { transform: rotate(180deg); }
+    #legend-items { padding: 0 14px 10px; }
     .legend-item {
       display: flex;
       align-items: center;
       gap: 6px;
-      padding: 2px 0;
+      padding: 3px 0;
       cursor: pointer;
       opacity: 1;
       transition: opacity 0.15s;
     }
-    .legend-item:hover { opacity: 0.8; }
-    .legend-item.hidden { opacity: 0.35; text-decoration: line-through; }
+    .legend-item:hover { opacity: 0.7; }
+    .legend-item.hidden { opacity: 0.3; text-decoration: line-through; }
     .legend-swatch {
-      width: 14px;
-      height: 14px;
-      border-radius: 3px;
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
       flex-shrink: 0;
-      border: 1px solid rgba(255,255,255,0.2);
     }
 
-    /* ── Tier toggle ────────────────────────── */
-    .controls-panel {
+    /* ── Controls toggle button ─────────────── */
+    #controls-toggle {
       position: absolute;
       top: 10px;
       right: 10px;
-      background: rgba(26,35,50,0.92);
-      backdrop-filter: blur(6px);
-      color: #fff;
-      padding: 8px 12px;
+      z-index: 16;
+      background: rgba(16,20,28,0.88);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.06);
+      color: var(--label);
+      width: 36px;
+      height: 36px;
       border-radius: var(--radius);
-      font-size: 0.78rem;
-      z-index: 15;
+      cursor: pointer;
+      font-size: 1.05rem;
       display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    #controls-toggle:hover { color: #fff; background: var(--navy-light); }
+    #controls-toggle.active { color: var(--gold); }
+
+    /* ── Controls drawer ────────────────────── */
+    .controls-panel {
+      position: absolute;
+      top: 52px;
+      right: 10px;
+      background: rgba(16,20,28,0.92);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.06);
+      color: #fff;
+      padding: 14px;
+      border-radius: var(--radius);
+      font-size: 0.76rem;
+      z-index: 15;
+      display: none;
       flex-direction: column;
-      gap: 8px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-      max-height: calc(100vh - 120px);
+      gap: 12px;
+      max-height: calc(100vh - 160px);
       overflow-y: auto;
-      min-width: 240px;
+      min-width: 210px;
+      transform-origin: top right;
+      animation: panelIn 0.12s ease-out;
+    }
+    .controls-panel.open { display: flex; }
+    @keyframes panelIn {
+      from { opacity: 0; transform: scale(0.95) translateY(-4px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
     }
     .controls-panel h4 {
-      font-size: 0.82rem;
-      color: var(--gold);
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+      font-size: 0.72rem;
+      color: var(--label);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 500;
       padding-bottom: 4px;
-      margin-top: 4px;
+      margin: 0;
     }
-    .controls-panel h4:first-child { margin-top: 0; }
     .controls-panel label {
       display: flex;
       align-items: center;
       gap: 6px;
       cursor: pointer;
       padding: 2px 0;
+      color: #ccd;
     }
     .controls-panel input[type="checkbox"] { accent-color: var(--gold); }
     .controls-panel input[type="text"],
     .controls-panel input[type="search"],
     .controls-panel select {
       width: 100%;
-      padding: 5px 8px;
-      border: 1px solid rgba(255,255,255,0.2);
-      background: rgba(255,255,255,0.08);
+      padding: 6px 10px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.06);
       color: #fff;
-      border-radius: 4px;
+      border-radius: 6px;
       font-size: 0.78rem;
       font-family: inherit;
+      transition: border-color 0.15s;
+    }
+    .controls-panel input:focus,
+    .controls-panel select:focus {
+      outline: none;
+      border-color: rgba(197,163,68,0.5);
     }
     .controls-panel input[type="text"]::placeholder,
     .controls-panel input[type="search"]::placeholder {
-      color: #888;
+      color: #556;
     }
     .controls-panel select { cursor: pointer; }
     .controls-panel select option { background: var(--navy); color: #fff; }
     .controls-panel button {
-      padding: 5px 10px;
+      padding: 6px 12px;
       background: var(--gold);
       color: var(--navy);
       border: none;
-      border-radius: 4px;
+      border-radius: 6px;
       cursor: pointer;
       font-weight: 600;
       font-size: 0.78rem;
-      transition: opacity 0.2s;
+      transition: all 0.15s;
     }
     .controls-panel button:hover { opacity: 0.9; }
     .controls-panel button.secondary {
-      background: rgba(255,255,255,0.15);
-      color: #fff;
+      background: rgba(255,255,255,0.1);
+      color: #aab;
     }
     .controls-section { display: flex; flex-direction: column; gap: 4px; }
+    .controls-actions { display: flex; gap: 8px; }
+    .controls-actions button { flex: 1; }
     
     /* ── Statistics panel ───────────────────── */
     #stats-panel {
       position: absolute;
       bottom: 10px;
       right: 10px;
-      background: rgba(26,35,50,0.92);
-      backdrop-filter: blur(6px);
+      background: rgba(16,20,28,0.88);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.06);
       color: #fff;
       padding: 10px 14px;
       border-radius: var(--radius);
       font-size: 0.74rem;
       z-index: 15;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-      min-width: 200px;
+      min-width: 170px;
       display: none;
     }
     #stats-panel.visible { display: block; }
     #stats-panel h4 {
-      font-size: 0.82rem;
-      color: var(--gold);
-      margin-bottom: 6px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      padding-bottom: 4px;
+      font-size: 0.72rem;
+      color: var(--label);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 500;
+      margin-bottom: 8px;
     }
     .stat-row {
       display: flex;
@@ -243,35 +305,44 @@
     }
     .stat-label { color: #8899aa; }
     .stat-value { font-weight: 600; color: #fff; }
+    .stat-section-label {
+      margin-top: 8px;
+      font-size: 0.68rem;
+      color: #7e8a98;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
     
     /* ── Parish list panel ──────────────────── */
     #parish-list-panel {
       position: absolute;
       bottom: 10px;
       left: 10px;
-      background: rgba(26,35,50,0.92);
-      backdrop-filter: blur(6px);
+      background: rgba(16,20,28,0.88);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.06);
       color: #fff;
       padding: 10px 14px;
       border-radius: var(--radius);
       font-size: 0.74rem;
       z-index: 15;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-      max-width: 350px;
-      max-height: 300px;
+      max-width: 300px;
+      max-height: 260px;
       overflow-y: auto;
       display: none;
     }
     #parish-list-panel.visible { display: block; }
     #parish-list-panel h4 {
-      font-size: 0.82rem;
-      color: var(--gold);
-      margin-bottom: 6px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      padding-bottom: 4px;
+      font-size: 0.72rem;
+      color: var(--label);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 500;
+      margin-bottom: 8px;
       position: sticky;
       top: 0;
-      background: rgba(26,35,50,0.95);
+      background: rgba(16,20,28,0.95);
+      padding-bottom: 6px;
       z-index: 1;
     }
     .parish-list-item {
@@ -300,42 +371,14 @@
       50% { border-color: rgba(197,163,68,0.8); }
     }
     
-    /* ── Keyboard shortcuts hint ────────────── */
-    .shortcuts-hint {
-      position: absolute;
-      bottom: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(26,35,50,0.85);
-      backdrop-filter: blur(6px);
-      color: #8899aa;
-      padding: 4px 12px;
-      border-radius: 12px;
-      font-size: 0.68rem;
-      z-index: 14;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-    .shortcuts-hint.visible { opacity: 1; }
-    .shortcuts-hint kbd {
-      background: rgba(255,255,255,0.15);
-      padding: 2px 5px;
-      border-radius: 3px;
-      font-family: monospace;
-      font-size: 0.7em;
-      color: #fff;
-    }
-
     @media (max-width: 900px) {
-      #legend, .controls-panel { max-width: 46vw; }
+      #legend, .controls-panel { max-width: 44vw; }
     }
     @media (max-width: 640px) {
       header { padding: 0.6rem 1rem; }
       #legend, .controls-panel {
-        font-size: 0.7rem;
-        padding: 8px 10px;
-        max-width: 90vw;
+        font-size: 0.72rem;
+        max-width: 88vw;
         max-height: 40vh;
       }
       .header-stats { display: none; }
@@ -344,184 +387,42 @@
     /* ── Tooltip ─────────────────────────────── */
     #tooltip {
       position: absolute;
-      pointer-events: auto;
-      background: linear-gradient(135deg, rgba(26,35,50,0.97) 0%, rgba(20,25,40,0.97) 100%);
-      backdrop-filter: blur(12px);
-      color: #fff;
-      padding: 12px 16px;
+      pointer-events: none;
+      background: rgba(16, 20, 28, 0.92);
+      backdrop-filter: blur(8px);
+      color: #b0b8c4;
+      padding: 10px 14px;
       border-radius: 8px;
-      font-size: 0.78rem;
-      line-height: 1.65;
-      z-index: 20;
-      max-width: 420px;
-      box-shadow: 0 6px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(197,163,68,0.25);
-      display: none;
-      border: 1px solid rgba(197,163,68,0.4);
-      transition: opacity 0.2s;
-    }
-    #tooltip strong { 
-      color: var(--gold); 
-      font-size: 0.92rem;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    #tooltip .tt-row { 
-      display: flex; 
-      gap: 8px; 
-      margin-top: 3px;
-      align-items: flex-start;
-    }
-    #tooltip .tt-label { 
-      color: #7899bb; 
-      flex-shrink: 0; 
-      min-width: 80px;
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    #tooltip .tt-icon {
-      opacity: 0.6;
-      font-size: 0.85em;
-    }
-    #tooltip .tt-value {
-      flex: 1;
-      color: #dde;
-    }
-    #tooltip .tt-bishop { 
-      color: #e0c870; 
-      font-style: italic;
-      font-weight: 500;
-    }
-    #tooltip .tt-divider {
-      border: none;
-      border-top: 1px solid rgba(255,255,255,0.12);
-      margin: 8px -4px;
-    }
-    #tooltip .tt-patriarchate {
-      display: inline-block;
-      font-size: 0.68rem;
-      padding: 2px 8px;
-      border-radius: 4px;
-      background: rgba(197,163,68,0.2);
-      color: #dca;
-      margin-top: 4px;
-      letter-spacing: 0.03em;
-      font-weight: 600;
-      border: 1px solid rgba(197,163,68,0.3);
-    }
-    #tooltip .tt-source {
-      display: inline-block;
-      font-size: 0.66rem;
-      padding: 2px 7px;
-      border-radius: 3px;
-      background: rgba(255,255,255,0.06);
-      color: #889;
-      margin-top: 6px;
-      border: 1px solid rgba(255,255,255,0.1);
-    }
-    #tooltip .tt-link {
-      color: #6cb4ee;
-      text-decoration: none;
-      word-break: break-all;
-      cursor: pointer;
-      transition: color 0.15s;
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-    }
-    #tooltip .tt-link:hover { color: #8dcfff; text-decoration: underline; }
-    #tooltip .tt-copy-btn {
-      display: inline-block;
-      padding: 1px 5px;
-      margin-left: 4px;
-      font-size: 0.65rem;
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 3px;
-      color: #aab;
-      cursor: pointer;
-      transition: all 0.15s;
-      vertical-align: middle;
-    }
-    #tooltip .tt-copy-btn:hover {
-      background: rgba(197,163,68,0.2);
-      border-color: rgba(197,163,68,0.4);
-      color: var(--gold);
-    }
-    #tooltip .tt-jurisdiction {
-      display: block;
-      font-size: 0.95rem;
-      padding: 8px 10px;
-      margin: 8px 0;
-      background: rgba(197,163,68,0.15);
-      border: 1px solid rgba(197,163,68,0.4);
-      border-radius: 6px;
-      color: #dca;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-    }
-    #tooltip .tt-jurisdiction .tt-icon {
-      margin-right: 4px;
-      font-size: 1em;
-      opacity: 1;
-    }
-    #tooltip .tt-address {
-      color: #bcd;
-      font-size: 0.75rem;
+      border: 1px solid rgba(255,255,255,0.07);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      font-size: 0.76rem;
       line-height: 1.5;
+      z-index: 20;
+      max-width: 260px;
+      display: none;
+      opacity: 0;
+      transform: translateY(3px);
+      transition: opacity 0.12s, transform 0.12s;
     }
-    #tooltip .tt-states {
-      color: #9bb;
-      font-size: 0.73rem;
-      margin-top: 3px;
-      padding: 4px 6px;
-      background: rgba(255,255,255,0.04);
-      border-radius: 3px;
-      border: 1px solid rgba(255,255,255,0.08);
-    }
-    #tooltip .tt-importance {
+    #tooltip.visible { opacity: 1; transform: translateY(0); }
+    .tt-name { color: #e8ecf0; font-weight: 600; font-size: 0.82rem; margin-bottom: 2px; }
+    .tt-badge {
       display: inline-block;
-      font-size: 0.7rem;
-      padding: 2px 8px;
-      border-radius: 4px;
-      margin-left: 6px;
-      font-weight: 700;
-      vertical-align: middle;
-      border: 1px solid;
+      font-size: 0.56rem;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.03em;
+      margin-left: 5px;
+      vertical-align: middle;
     }
-    #tooltip .tt-importance.cathedral  { background: rgba(255,215,0,0.2); color: #ffd700; border-color: rgba(255,215,0,0.4); }
-    #tooltip .tt-importance.monastery  { background: rgba(140,80,200,0.2); color: #d8b0ff; border-color: rgba(140,80,200,0.4); }
-    #tooltip .tt-importance.seminary   { background: rgba(60,180,120,0.2); color: #7ddfb0; border-color: rgba(60,180,120,0.4); }
-    #tooltip .tt-importance.notable    { background: rgba(100,180,255,0.2); color: #99d5ff; border-color: rgba(100,180,255,0.4); }
-    #tooltip .tt-section-header {
-      font-size: 0.72rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #8899aa;
-      margin-top: 6px;
-      margin-bottom: 3px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-    #tooltip .tt-email {
-      color: #8dcfff;
-    }
-    #tooltip .tt-coords {
-      font-family: 'Courier New', monospace;
-      font-size: 0.7rem;
-      color: #889;
-      background: rgba(255,255,255,0.04);
-      padding: 2px 6px;
-      border-radius: 3px;
-      display: inline-block;
-      margin-top: 2px;
-    }
+    .tt-badge.cathedral { background: rgba(255,215,0,0.12); color: #e8c840; }
+    .tt-badge.monastery { background: rgba(140,80,200,0.12); color: #c8a0f0; }
+    .tt-badge.seminary  { background: rgba(60,180,120,0.12); color: #6dc898; }
+    .tt-badge.notable   { background: rgba(100,180,255,0.12); color: #88c8f0; }
+    .tt-meta { color: #7e8a98; font-size: 0.72rem; }
+    .tt-hint { color: #4e5868; font-size: 0.64rem; margin-top: 6px; }
 
     /* ── Modal ───────────────────────────────── */
     #modal-overlay {
@@ -546,26 +447,20 @@
       to { opacity: 1; }
     }
     #modal-content {
-      background: linear-gradient(135deg, rgba(26,35,50,0.98) 0%, rgba(20,25,40,0.98) 100%);
-      border: 1px solid rgba(197,163,68,0.4);
+      background: var(--navy);
+      border: 1px solid rgba(255,255,255,0.1);
       border-radius: 12px;
       max-width: 600px;
       width: 90%;
       max-height: 85vh;
       overflow-y: auto;
-      box-shadow: 0 12px 64px rgba(0,0,0,0.8);
+      box-shadow: 0 12px 48px rgba(0,0,0,0.6);
       color: #fff;
-      animation: slideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      animation: slideIn 0.25s ease-out;
     }
     @keyframes slideIn {
-      from {
-        transform: scale(0.9) translateY(20px);
-        opacity: 0;
-      }
-      to {
-        transform: scale(1) translateY(0);
-        opacity: 1;
-      }
+      from { transform: translateY(12px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
     }
     #modal-header {
       padding: 20px 24px;
@@ -617,15 +512,12 @@
       margin-bottom: 0;
     }
     .modal-section-title {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      color: #8899aa;
+      color: #7e8a98;
       margin-bottom: 10px;
       font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 6px;
     }
     .modal-row {
       display: flex;
@@ -649,9 +541,31 @@
       flex: 1;
       color: #dde;
     }
-    .modal-icon {
-      opacity: 0.7;
-      font-size: 0.9em;
+    .modal-seat-card {
+      padding: 8px 10px;
+      margin-bottom: 8px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 6px;
+    }
+    .modal-seat-card:last-child { margin-bottom: 0; }
+    .modal-seat-name {
+      font-weight: 600;
+      color: #dde;
+      margin-bottom: 6px;
+    }
+    .modal-seat-notes {
+      font-size: 0.8rem;
+      color: #7e8a98;
+      margin-top: 4px;
+      font-style: italic;
+    }
+    .modal-footer-meta {
+      font-size: 0.78rem;
+      color: #7e8a98;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
     }
     .modal-badge {
       display: inline-block;
@@ -723,7 +637,6 @@
     .modal-action-btn:hover {
       background: rgba(197,163,68,0.25);
       border-color: rgba(197,163,68,0.5);
-      transform: translateY(-1px);
     }
 
     /* ── Clergy styling ─────────────────────── */
@@ -758,37 +671,6 @@
       margin-top: 2px;
     }
 
-    .tt-clergy-container {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .tt-clergy-member {
-      background: rgba(255,255,255,0.05);
-      border-left: 2px solid var(--gold);
-      padding: 6px 8px;
-      border-radius: 3px;
-      font-size: 0.8rem;
-      line-height: 1.4;
-    }
-    .tt-clergy-rank {
-      color: var(--gold);
-      font-weight: 600;
-      display: inline;
-      margin-right: 3px;
-    }
-    .tt-clergy-name {
-      color: #dde;
-      font-weight: 500;
-    }
-    .tt-clergy-role {
-      color: #7899bb;
-      font-size: 0.75rem;
-      font-style: italic;
-      display: block;
-      margin-top: 1px;
-    }
-
     /* ── Loading overlay ─────────────────────── */
     #loading-overlay {
       position: absolute;
@@ -815,216 +697,80 @@
     /* ── Splash Modal ───────────────────────────── */
     #splash-overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.85);
-      backdrop-filter: blur(8px);
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(6px);
       z-index: 2000;
       display: flex;
       align-items: center;
       justify-content: center;
-      animation: fadeIn 0.3s;
     }
-    #splash-overlay.hidden {
-      display: none;
-    }
+    #splash-overlay.hidden { display: none; }
     #splash-content {
-      background: linear-gradient(135deg, rgba(26,35,50,0.99) 0%, rgba(20,25,40,0.99) 100%);
-      border: 1px solid rgba(197,163,68,0.5);
-      border-radius: 16px;
-      max-width: 720px;
+      background: var(--navy);
+      border-radius: 12px;
+      max-width: 460px;
       width: 90%;
-      max-height: 90vh;
-      overflow-y: auto;
-      box-shadow: 0 20px 80px rgba(0,0,0,0.9);
       color: #fff;
-      animation: slideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-      padding: 0;
+      overflow: hidden;
     }
     #splash-header {
-      background: linear-gradient(135deg, rgba(197,163,68,0.2) 0%, rgba(197,163,68,0.1) 100%);
-      border-bottom: 1px solid rgba(197,163,68,0.4);
-      padding: 30px 32px;
-      border-radius: 16px 16px 0 0;
-      text-align: center;
+      padding: 28px 28px 0;
     }
     #splash-title {
-      font-size: 2rem;
+      font-size: 1.4rem;
       font-weight: 700;
       color: var(--gold);
-      margin-bottom: 8px;
-      letter-spacing: -0.01em;
-    }
-    #splash-subtitle {
-      font-size: 0.95rem;
-      color: #8899aa;
-      line-height: 1.5;
     }
     #splash-body {
-      padding: 32px;
-      font-size: 0.9rem;
+      padding: 16px 28px 24px;
+      font-size: 0.88rem;
       line-height: 1.7;
+      color: #bbc;
     }
-    .splash-section {
-      margin-bottom: 28px;
+    #splash-body p { margin-bottom: 14px; }
+    .splash-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
     }
-    .splash-section:last-child {
-      margin-bottom: 0;
-    }
-    .splash-section-title {
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--gold);
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      letter-spacing: 0.02em;
-    }
-    .splash-section-icon {
-      font-size: 1.4rem;
-      display: flex;
-      align-items: center;
-      opacity: 0.9;
-    }
-    .splash-row {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 10px;
-      align-items: flex-start;
-    }
-    .splash-row:last-child {
-      margin-bottom: 0;
-    }
-    .splash-bullet {
-      color: #7899bb;
-      flex-shrink: 0;
-      font-weight: 600;
-      min-width: fit-content;
-    }
-    .splash-text {
-      flex: 1;
-      color: #dde;
-      line-height: 1.6;
-    }
-    .splash-kbd {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(255,255,255,0.12);
-      border: 1px solid rgba(255,255,255,0.2);
-      color: #fff;
-      padding: 2px 7px;
-      border-radius: 3px;
-      font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
-      font-size: 0.75rem;
-      font-weight: 600;
-      margin: 0 3px;
-      letter-spacing: 0.02em;
-    }
-    .splash-tip {
-      background: rgba(197,163,68,0.1);
-      border-left: 3px solid rgba(197,163,68,0.6);
-      padding: 12px 14px;
-      border-radius: 6px;
-      margin: 12px 0;
-      font-size: 0.85rem;
-      line-height: 1.6;
+    .splash-list li {
+      padding: 6px 0 6px 20px;
+      position: relative;
       color: #dde;
     }
-    .splash-tip strong {
+    .splash-list li::before {
+      content: '\2192';
+      position: absolute;
+      left: 0;
       color: var(--gold);
-      display: block;
-      margin-bottom: 4px;
-      font-size: 0.9rem;
-    }
-    .splash-features {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin: 12px 0;
-    }
-    @media (max-width: 600px) {
-      .splash-features {
-        grid-template-columns: 1fr;
-      }
-    }
-    .splash-feature-card {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.1);
-      padding: 12px 14px;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      line-height: 1.5;
-      color: #dde;
-    }
-    .splash-feature-card strong {
-      color: var(--gold);
-      display: block;
-      margin-bottom: 4px;
-      font-size: 0.9rem;
     }
     #splash-footer {
-      padding: 20px 32px;
-      border-top: 1px solid rgba(255,255,255,0.12);
+      padding: 16px 28px;
+      border-top: 1px solid rgba(255,255,255,0.08);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
     }
     .splash-checkbox {
       display: flex;
       align-items: center;
       gap: 6px;
-      font-size: 0.85rem;
-      color: #8899aa;
+      font-size: 0.8rem;
+      color: #889;
     }
-    .splash-checkbox input[type="checkbox"] {
-      accent-color: var(--gold);
-      cursor: pointer;
-    }
-    .splash-button-group {
-      display: flex;
-      gap: 8px;
-    }
+    .splash-checkbox input { accent-color: var(--gold); cursor: pointer; }
     #splash-close-btn {
-      padding: 10px 20px;
+      padding: 8px 20px;
       background: var(--gold);
       color: var(--navy);
       border: none;
       border-radius: 6px;
       cursor: pointer;
-      font-weight: 700;
-      font-size: 0.9rem;
-      transition: all 0.2s;
-      letter-spacing: 0.02em;
-    }
-    #splash-close-btn:hover {
-      background: #ddb855;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(197, 163, 68, 0.3);
-    }
-    #splash-close-btn:active {
-      transform: translateY(0);
-    }
-    #splash-help-btn {
-      padding: 10px 20px;
-      background: rgba(197,163,68,0.15);
-      color: var(--gold);
-      border: 1px solid rgba(197,163,68,0.4);
-      border-radius: 6px;
-      cursor: pointer;
       font-weight: 600;
-      font-size: 0.9rem;
-      transition: all 0.2s;
+      font-size: 0.88rem;
     }
-    #splash-help-btn:hover {
-      background: rgba(197,163,68,0.25);
-      border-color: rgba(197,163,68,0.6);
-    }
+    #splash-close-btn:hover { opacity: 0.9; }
   </style>
 </head>
 <body>
@@ -1045,12 +791,16 @@
   <div id="loading-overlay"><span class="spinner"></span> Loading map data…</div>
 
   <div id="legend">
-    <h3>Jurisdictions</h3>
+    <div class="legend-header">
+      <h3>Jurisdictions</h3>
+      <button class="legend-toggle" id="legend-toggle" title="Collapse">&#9662;</button>
+    </div>
     <div id="legend-items"></div>
   </div>
 
+  <button id="controls-toggle" title="Controls">&#9881;</button>
   <div class="controls-panel">
-    <h4>🔍 Search & Filter</h4>
+    <h4>Filters</h4>
     <div class="controls-section">
       <input type="search" id="searchInput" placeholder="Search parishes, cities..." />
       <select id="filterDiocese">
@@ -1071,41 +821,32 @@
       </select>
     </div>
     
-    <h4>📊 Visualization</h4>
+    <h4>Layers</h4>
     <div class="controls-section">
       <label><input type="checkbox" id="showDioceses" checked> Diocese boundaries</label>
       <label><input type="checkbox" id="showParishes" checked> Parish territories</label>
       <label><input type="checkbox" id="showPoints" checked> Parish markers</label>
       <label><input type="checkbox" id="showHeatmap"> Density heatmap</label>
       <label><input type="checkbox" id="showLabels"> Parish labels</label>
-      <label><input type="checkbox" id="highlightImportant" checked> ☆ Highlight notable</label>
+      <label><input type="checkbox" id="highlightImportant" checked> Highlight notable</label>
+      <label><input type="checkbox" id="showStats"> Statistics panel</label>
+      <label><input type="checkbox" id="showParishList"> Parish list panel</label>
     </div>
     
-    <h4>📋 Panels</h4>
-    <div class="controls-section">
-      <label><input type="checkbox" id="showStats"> Statistics</label>
-      <label><input type="checkbox" id="showParishList"> Parish list</label>
-    </div>
-    
-    <h4>🛠️ Actions</h4>
-    <div class="controls-section">
+    <div class="controls-actions">
       <button id="resetFilters" class="secondary">Reset Filters</button>
       <button id="exportVisible">Export Visible</button>
     </div>
   </div>
 
   <div id="stats-panel">
-    <h4>📊 Statistics</h4>
+    <h4>Statistics</h4>
     <div id="stats-content"></div>
   </div>
 
   <div id="parish-list-panel">
-    <h4>📋 Visible Parishes</h4>
+    <h4>Visible Parishes</h4>
     <div id="parish-list-content"></div>
-  </div>
-
-  <div class="shortcuts-hint" id="shortcuts-hint">
-    <kbd>/</kbd> Focus search · <kbd>Esc</kbd> Clear · <kbd>?</kbd> Help
   </div>
 
   <div id="tooltip"></div>
@@ -1125,120 +866,22 @@
   <div id="splash-overlay">
     <div id="splash-content">
       <div id="splash-header">
-        <div id="splash-title">☦ Orthodox Jurisdiction Map</div>
-        <div id="splash-subtitle">Explore the geographic structure and boundaries of Orthodox parishes, dioceses, and patriarchates across North America</div>
+        <div id="splash-title">Orthodox Jurisdiction Map</div>
       </div>
       <div id="splash-body">
-        <div class="splash-section">
-          <div class="splash-section-title">
-            <span class="splash-section-icon">🗺️</span>
-            What This Map Shows
-          </div>
-          <div class="splash-row">
-            <div class="splash-text">This interactive map displays the territorial jurisdiction of Orthodox Christian parishes across North America. Each colored region represents a diocese or jurisdiction, and you can explore parish locations, boundaries, diocesan organization, and hierarchical relationships.</div>
-          </div>
-        </div>
-
-        <div class="splash-section">
-          <div class="splash-section-title">
-            <span class="splash-section-icon">🎮</span>
-            How to Navigate
-          </div>
-          <div class="splash-row">
-            <div class="splash-bullet">🖱️</div>
-            <div class="splash-text"><strong>Pan & Zoom:</strong> Click and drag to pan, use scroll wheel to zoom in/out</div>
-          </div>
-          <div class="splash-row">
-            <div class="splash-bullet">👆</div>
-            <div class="splash-text"><strong>Select:</strong> Click on a diocese boundary or parish marker to view details</div>
-          </div>
-          <div class="splash-row">
-            <div class="splash-bullet">🔍</div>
-            <div class="splash-text"><strong>Search:</strong> Use <span class="splash-kbd">/</span> to focus the search box, or type directly</div>
-          </div>
-        </div>
-
-        <div class="splash-section">
-          <div class="splash-section-title">
-            <span class="splash-section-icon">⚙️</span>
-            Controls & Filters
-          </div>
-          <div class="splash-features">
-            <div class="splash-feature-card">
-              <strong>Search</strong>
-              Find parishes by name, location, or diocese
-            </div>
-            <div class="splash-feature-card">
-              <strong>Filters</strong>
-              Filter by diocese, patriarchate, state, or importance (Cathedral, Monastery, etc.)
-            </div>
-            <div class="splash-feature-card">
-              <strong>Visualization</strong>
-              Toggle diocese boundaries, parish territories, markers, and labels
-            </div>
-            <div class="splash-feature-card">
-              <strong>Statistics</strong>
-              View counts of visible parishes, dioceses, and clustering statistics
-            </div>
-          </div>
-        </div>
-
-        <div class="splash-tip">
-          <strong>💡 Pro Tip</strong>
-          Click on the legend (left side) to show/hide entire jurisdictions at once. Use the controls panel on the right to fine-tune what you're viewing.
-        </div>
-
-        <div class="splash-section">
-          <div class="splash-section-title">
-            <span class="splash-section-icon">⌨️</span>
-            Keyboard Shortcuts
-          </div>
-          <div class="splash-row">
-            <div class="splash-bullet"><span class="splash-kbd">/</span></div>
-            <div class="splash-text">Focus the search box</div>
-          </div>
-          <div class="splash-row">
-            <div class="splash-bullet"><span class="splash-kbd">Esc</span></div>
-            <div class="splash-text">Clear active filters and reset search</div>
-          </div>
-          <div class="splash-row">
-            <div class="splash-bullet"><span class="splash-kbd">?</span></div>
-            <div class="splash-text">Show/hide keyboard shortcuts hint</div>
-          </div>
-        </div>
-
-        <div class="splash-section">
-          <div class="splash-section-title">
-            <span class="splash-section-icon">📊</span>
-            Parish Importance Levels
-          </div>
-          <div class="splash-row">
-            <div class="splash-bullet">🏛️</div>
-            <div class="splash-text"><strong>Cathedrals:</strong> Diocesan seats and major cathedral churches</div>
-          </div>
-          <div class="splash-row">
-            <div class="splash-bullet">🧘</div>
-            <div class="splash-text"><strong>Monasteries:</strong> Monastic communities</div>
-          </div>
-          <div class="splash-row">
-            <div class="splash-bullet">🎓</div>
-            <div class="splash-text"><strong>Seminaries:</strong> Theological educational institutions</div>
-          </div>
-          <div class="splash-row">
-            <div class="splash-bullet">⭐</div>
-            <div class="splash-text"><strong>Notable:</strong> Historically or structurally significant parishes</div>
-          </div>
-        </div>
+        <p>Explore the territorial jurisdictions of Orthodox Christian parishes, dioceses, and patriarchates across North America.</p>
+        <ul class="splash-list">
+          <li>Click any region or marker for detailed information</li>
+          <li>Use the controls panel (top-right) to filter and toggle layers</li>
+          <li>Click legend items to show or hide jurisdictions</li>
+        </ul>
       </div>
       <div id="splash-footer">
         <label class="splash-checkbox">
           <input type="checkbox" id="splash-no-show" />
-          Don't show this again
+          Don't show again
         </label>
-        <div class="splash-button-group">
-          <button id="splash-help-btn">Full Help</button>
-          <button id="splash-close-btn">Explore Map</button>
-        </div>
+        <button id="splash-close-btn">Explore Map</button>
       </div>
     </div>
   </div>
@@ -1251,7 +894,6 @@
   // ── Splash Modal ────────────────────────────
   const splashOverlay = document.getElementById("splash-overlay");
   const splashCloseBtn = document.getElementById("splash-close-btn");
-  const splashHelpBtn = document.getElementById("splash-help-btn");
   const splashNoShow = document.getElementById("splash-no-show");
   const SPLASH_DISMISSED_KEY = "orthocalendar_splash_dismissed";
 
@@ -1271,10 +913,6 @@
   }
 
   splashCloseBtn.addEventListener("click", closeSplash);
-  splashHelpBtn.addEventListener("click", () => {
-    closeSplash();
-    // Could open a more detailed help modal in the future
-  });
 
   splashOverlay.addEventListener("click", (e) => {
     if (e.target === splashOverlay) {
@@ -1290,6 +928,22 @@
 
   // Show splash on load
   showSplash();
+
+  // ── Controls toggle ─────────────────────────
+  const controlsToggle = document.getElementById("controls-toggle");
+  const controlsPanel = document.querySelector(".controls-panel");
+  controlsToggle.addEventListener("click", () => {
+    controlsPanel.classList.toggle("open");
+    controlsToggle.classList.toggle("active");
+  });
+
+  // ── Legend collapse ─────────────────────────
+  const legendToggle = document.getElementById("legend-toggle");
+  const legend = document.getElementById("legend");
+  legendToggle.addEventListener("click", () => {
+    legend.classList.toggle("collapsed");
+    legendToggle.textContent = legend.classList.contains("collapsed") ? "\u25B8" : "\u25BE";
+  });
   
   // ── State ───────────────────────────────────
   let dioceseData = null;
@@ -1328,7 +982,7 @@
   let hideTooltipTimeout = null;
 
   // ── Helper function: Format clergy information ──
-  function formatClergyDisplay(clergyStr, isTooltip = false) {
+  function formatClergyDisplay(clergyStr) {
     if (!clergyStr || typeof clergyStr !== 'string') return '';
     
     // First split by known delimiters (semicolons, newlines)
@@ -1406,11 +1060,11 @@
     
     if (cleanMembers.length === 0) return '';
 
-    const containerClass = isTooltip ? 'tt-clergy-container' : 'clergy-container';
-    const memberClass = isTooltip ? 'tt-clergy-member' : 'clergy-member';
-    const rankClass = isTooltip ? 'tt-clergy-rank' : 'clergy-rank';
-    const nameClass = isTooltip ? 'tt-clergy-name' : 'clergy-name';
-    const roleClass = isTooltip ? 'tt-clergy-role' : 'clergy-role';
+    const containerClass = 'clergy-container';
+    const memberClass = 'clergy-member';
+    const rankClass = 'clergy-rank';
+    const nameClass = 'clergy-name';
+    const roleClass = 'clergy-role';
 
     const memberHtml = cleanMembers.map(member => {
       // Parse: "RANK NAME (ROLE)" format
@@ -1447,20 +1101,6 @@
     return `<div class="${containerClass}">${memberHtml}</div>`;
   }
 
-  // Keep tooltip visible when hovering over it
-  tooltip.addEventListener("mouseenter", () => {
-    if (hideTooltipTimeout) {
-      clearTimeout(hideTooltipTimeout);
-      hideTooltipTimeout = null;
-    }
-  });
-
-  tooltip.addEventListener("mouseleave", () => {
-    hideTooltipTimeout = setTimeout(() => {
-      tooltip.style.display = "none";
-    }, 200);
-  });
-
   // ── Modal ────────────────────────────────────
   const modal = document.getElementById("modal-overlay");
   const modalTitle = document.getElementById("modal-title");
@@ -1490,30 +1130,54 @@
     }
   });
 
-  // ── Fetch all data in parallel ──────────────
+  // ── Fetch all data in parallel (snapshot-first) ──────────────────
+  const SNAPSHOT_BASE = "/data/snapshots";
+  const forceLiveData = new URLSearchParams(window.location.search).get("data") === "live";
+
+  async function fetchJson(url, label) {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`${label}: ${response.status} ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  async function loadDataLayer(snapshotFile, livePath, label) {
+    const snapshotUrl = `${SNAPSHOT_BASE}/${snapshotFile}`;
+
+    if (!forceLiveData) {
+      try {
+        const data = await fetchJson(snapshotUrl, `${label} snapshot`);
+        console.log(`[data-layer] ${label}: snapshot`);
+        return data;
+      } catch (snapshotErr) {
+        console.warn(`[data-layer] ${label}: snapshot unavailable, using live API`, snapshotErr.message);
+      }
+    }
+
+    try {
+      const data = await fetchJson(livePath, `${label} live`);
+      console.log(`[data-layer] ${label}: live API`);
+      return data;
+    } catch (liveErr) {
+      if (forceLiveData) {
+        throw liveErr;
+      }
+
+      // Last fallback for partial deployments where API is unavailable but snapshots exist.
+      const data = await fetchJson(snapshotUrl, `${label} snapshot fallback`);
+      console.log(`[data-layer] ${label}: snapshot fallback`);
+      return data;
+    }
+  }
+
   console.log("Starting to fetch map data...");
-  
+
   Promise.all([
-    fetch("/api/map/dioceses").then(r => {
-      console.log("dioceses:", r.status);
-      if (!r.ok) throw new Error("dioceses: " + r.status + " " + r.statusText);
-      return r.json();
-    }),
-    fetch("/api/map/parishes-poly").then(r => {
-      console.log("parishes-poly:", r.status);
-      if (!r.ok) throw new Error("parishes-poly: " + r.status + " " + r.statusText);
-      return r.json();
-    }),
-    fetch("/api/map/points").then(r => {
-      console.log("points:", r.status);
-      if (!r.ok) throw new Error("points: " + r.status + " " + r.statusText);
-      return r.json();
-    }),
-    fetch("/api/map/meta").then(r => {
-      console.log("meta:", r.status);
-      if (!r.ok) throw new Error("meta: " + r.status + " " + r.statusText);
-      return r.json();
-    }),
+    loadDataLayer("map-dioceses.json", "/api/map/dioceses", "dioceses"),
+    loadDataLayer("map-parishes-poly.json", "/api/map/parishes-poly", "parishes-poly"),
+    loadDataLayer("map-points.json", "/api/map/points", "points"),
+    loadDataLayer("map-meta.json", "/api/map/meta", "meta"),
   ]).then(([dioceses, parishPolys, points, meta]) => {
     try {
       console.log("All data loaded successfully");
@@ -1605,7 +1269,13 @@
       .replace("Ukrainian Orthodox Church of the USA", "UOC-USA")
       .replace("Albanian Orthodox Diocese of America", "Albanian")
       .replace("Georgian Orthodox Church", "Georgian")
-      .replace("Patriarchal Parishes of the Russian Orthodox Church in the USA", "Moscow Pat.");
+      .replace("Patriarchal Parishes of the Russian Orthodox Church in the USA", "Moscow Pat.")
+      .replace("Romanian Orthodox Church", "Romanian (Europe)")
+      .replace("Serbian Orthodox Church", "Serbian (Europe)")
+      .replace("Ukrainian Orthodox Church", "Ukrainian (Europe)")
+      .replace("Russian Orthodox Church", "Russian (Europe)")
+      .replace("Church of Greece", "Church of Greece")
+      .replace("Polish Orthodox Church", "Polish");
   }
 
   // ── Init deck.gl + MapLibre ─────────────────
@@ -1784,20 +1454,7 @@
           document.getElementById("resetFilters").click();
         }
       }
-      // ? - Show shortcuts hint
-      if (e.key === "?") {
-        const hint = document.getElementById("shortcuts-hint");
-        hint.classList.add("visible");
-        setTimeout(() => hint.classList.remove("visible"), 3000);
-      }
     });
-
-    // Show shortcuts hint on load
-    setTimeout(() => {
-      const hint = document.getElementById("shortcuts-hint");
-      hint.classList.add("visible");
-      setTimeout(() => hint.classList.remove("visible"), 5000);
-    }, 2000);
   }
 
   // ── Apply filters ────────────────────────────
@@ -1896,7 +1553,7 @@
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3);
     if (topJur.length > 0) {
-      html += `<div style="margin-top:8px;font-size:0.7rem;color:#8899aa;text-transform:uppercase">Top Jurisdictions</div>`;
+      html += `<div class="stat-section-label">Top Jurisdictions</div>`;
       topJur.forEach(([j, c]) => {
         html += `<div class="stat-row"><span class="stat-label">${abbreviateJurisdiction(j)}</span><span class="stat-value">${c}</span></div>`;
       });
@@ -1905,7 +1562,7 @@
     // Important
     const impCount = Object.values(stats.byImportance).reduce((a, b) => a + b, 0);
     if (impCount > 0) {
-      html += `<div style="margin-top:8px;font-size:0.7rem;color:#8899aa;text-transform:uppercase">Notable Parishes</div>`;
+      html += `<div class="stat-section-label">Notable Parishes</div>`;
       Object.entries(stats.byImportance).forEach(([imp, c]) => {
         html += `<div class="stat-row"><span class="stat-label">${IMPORTANCE_LABELS[imp]}</span><span class="stat-value">${c}</span></div>`;
       });
@@ -1934,7 +1591,7 @@
     });
 
     if (features.length === 100) {
-      html += `<div style="padding:8px;text-align:center;color:#888;font-size:0.7rem">Showing first 100 results</div>`;
+      html += `<div class="stat-section-label">Showing first 100 results</div>`;
     }
 
     document.getElementById("parish-list-content").innerHTML = html;
@@ -2129,7 +1786,7 @@
               hoveredDiocese = null;
               updateLayers();
             }
-            tooltip.style.display = "none";
+            tooltip.classList.remove("visible"); tooltip.style.display = "none";
           }
         },
         onClick: (info) => showModalDiocese(info),
@@ -2171,10 +1828,9 @@
     // Points: parish markers
     if (showPoints) {
       const filteredPts = getCurrentPoints();
-      // Separate important and regular points
-      const regularFeatures = highlightImportant
-        ? { type: "FeatureCollection", features: filteredPts.features.filter(f => !f.properties.importance) }
-        : filteredPts;
+      // Keep the base points layer as the full visible set so ordinary parishes
+      // always render; notable points are added as a separate highlight overlay.
+      const regularFeatures = filteredPts;
       const importantFeatures = highlightImportant
         ? { type: "FeatureCollection", features: filteredPts.features.filter(f => f.properties.importance) }
         : { type: "FeatureCollection", features: [] };
@@ -2334,7 +1990,7 @@
       ? `<span class="modal-badge modal-importance ${p.importance}">${impLabel}</span>`
       : "";
 
-    let title = `<span class="modal-icon">⛪</span>${escapeHtml(p.name)}${impBadge}`;
+    let title = `${escapeHtml(p.name)}${impBadge}`;
     
     let body = "";
     if (p.patriarchate) {
@@ -2344,7 +2000,7 @@
     // Location section
     body += `<hr class="modal-divider">`;
     body += `<div class="modal-section">`;
-    body += `<div class="modal-section-title"><span class="modal-icon">📍</span>Location</div>`;
+    body += `<div class="modal-section-title">Location</div>`;
     const locationParts = [p.city, p.state].filter(Boolean).map(escapeHtml);
     if (p.country && p.country !== "USA" && p.country !== "US") locationParts.push(escapeHtml(p.country));
     if (locationParts.length > 0) {
@@ -2360,24 +2016,24 @@
 
     body += `<hr class="modal-divider">`;
     body += `<div class="modal-section">`;
-    body += `<div class="modal-section-title"><span class="modal-icon">⛪</span>Church Hierarchy</div>`;
+    body += `<div class="modal-section-title">Church Hierarchy</div>`;
     body += `<div class="modal-row"><span class="modal-label">Diocese</span><span class="modal-value">${escapeHtml(p.diocese) || "—"}</span></div>`;
     if (p.deanery) body += `<div class="modal-row"><span class="modal-label">Deanery</span><span class="modal-value">${escapeHtml(p.deanery)}</span></div>`;
     body += `<div class="modal-row"><span class="modal-label">Jurisdiction</span><span class="modal-value">${escapeHtml(abbreviateJurisdiction(p.jurisdiction))}</span></div>`;
-    if (p.bishop) body += `<div class="modal-row"><span class="modal-label">Bishop</span><span class="modal-value" style="color:#e0c870;font-style:italic">${escapeHtml(p.bishop)}</span></div>`;
+    if (p.bishop) body += `<div class="modal-row"><span class="modal-label">Bishop</span><span class="modal-value">${escapeHtml(p.bishop)}</span></div>`;
     body += `</div>`;
 
     // Diocesan seats section
     if (p.diocesanSeats && p.diocesanSeats.length > 0) {
       body += `<hr class="modal-divider">`;
       body += `<div class="modal-section">`;
-      body += `<div class="modal-section-title"><span class="modal-icon">👑</span>Diocesan Seat</div>`;
+      body += `<div class="modal-section-title">Diocesan Seat</div>`;
       p.diocesanSeats.forEach(seat => {
-        body += `<div style="margin-bottom:10px;padding:8px;background:rgba(197,163,68,0.1);border-left:3px solid #c5a344;border-radius:3px">`;
-        body += `<div style="font-weight:600;color:#c5a344;margin-bottom:4px">${escapeHtml(seat.diocese)}</div>`;
-        body += `<div style="font-size:0.85rem;color:#999"><strong>Type:</strong> ${escapeHtml(seat.type)}</div>`;
-        body += `<div style="font-size:0.85rem;color:#999"><strong>Jurisdiction:</strong> ${escapeHtml(seat.jurisdiction)}</div>`;
-        if (seat.notes) body += `<div style="font-size:0.8rem;color:#888;margin-top:4px;font-style:italic">${escapeHtml(seat.notes)}</div>`;
+        body += `<div class="modal-seat-card">`;
+        body += `<div class="modal-seat-name">${escapeHtml(seat.diocese)}</div>`;
+        body += `<div class="modal-row"><span class="modal-label">Type</span><span class="modal-value">${escapeHtml(seat.type)}</span></div>`;
+        body += `<div class="modal-row"><span class="modal-label">Jurisdiction</span><span class="modal-value">${escapeHtml(seat.jurisdiction)}</span></div>`;
+        if (seat.notes) body += `<div class="modal-seat-notes">${escapeHtml(seat.notes)}</div>`;
         body += `</div>`;
       });
       body += `</div>`;
@@ -2386,9 +2042,9 @@
     if (p.clergy || p.phone || p.email || p.website) {
       body += `<hr class="modal-divider">`;
       body += `<div class="modal-section">`;
-      body += `<div class="modal-section-title"><span class="modal-icon">📞</span>Contact Information</div>`;
+      body += `<div class="modal-section-title">Contact Information</div>`;
       if (p.clergy) {
-        const clergyHtml = formatClergyDisplay(p.clergy, false);
+        const clergyHtml = formatClergyDisplay(p.clergy);
         body += `<div class="modal-row"><span class="modal-label">Clergy</span><span class="modal-value">${clergyHtml}</span></div>`;
       }
       if (p.phone) body += `<div class="modal-row"><span class="modal-label">Phone</span><span class="modal-value"><a href="tel:${p.phone.replace(/[^0-9+]/g, '')}" class="modal-link">${escapeHtml(p.phone)}</a></span></div>`;
@@ -2401,15 +2057,15 @@
     body += `<hr class="modal-divider">`;
     body += `<div class="modal-section">`;
     if (coords) {
-      body += `<a href="https://www.google.com/maps/dir/?api=1&destination=${coords[1]},${coords[0]}" target="_blank" class="modal-action-btn">🗺️ Get Directions</a>`;
-      body += `<button class="modal-action-btn" onclick="navigator.clipboard.writeText('${coords[1].toFixed(6)}, ${coords[0].toFixed(6)}'); this.innerHTML='✓ Copied!'">📋 Copy Coordinates</button>`;
+      body += `<a href="https://www.google.com/maps/dir/?api=1&destination=${coords[1]},${coords[0]}" target="_blank" class="modal-action-btn">Get Directions</a>`;
+      body += `<button class="modal-action-btn" onclick="navigator.clipboard.writeText('${coords[1].toFixed(6)}, ${coords[0].toFixed(6)}'); this.innerHTML='✓ Copied!'">Copy Coordinates</button>`;
     }
     body += `</div>`;
 
     // Footer
     if (p.clusterId || p.source) {
       body += `<hr class="modal-divider">`;
-      body += `<div style="font-size:0.8rem;color:#889;display:flex;gap:12px;flex-wrap:wrap">`;
+      body += `<div class="modal-footer-meta">`;
       if (p.clusterId) body += `<span>Cluster #${escapeHtml(p.clusterId)}</span>`;
       if (p.source) body += `<span>Source: ${escapeHtml(p.source)}</span>`;
       body += `</div>`;
@@ -2422,7 +2078,7 @@
     if (!info.object) return;
     const p = info.object.properties;
     
-    let title = `<span class="modal-icon">⛪</span>${escapeHtml(p.diocese) || "Unknown Diocese"}`;
+    let title = `${escapeHtml(p.diocese) || "Unknown Diocese"}`;
     
     let body = "";
     if (p.patriarchate) {
@@ -2431,18 +2087,18 @@
 
     body += `<hr class="modal-divider">`;
     body += `<div class="modal-section">`;
-    body += `<div class="modal-section-title"><span class="modal-icon">⛪</span>Diocese Information</div>`;
+    body += `<div class="modal-section-title">Diocese Information</div>`;
     body += `<div class="modal-row"><span class="modal-label">Jurisdiction</span><span class="modal-value">${escapeHtml(abbreviateJurisdiction(p.jurisdiction))}</span></div>`;
-    if (p.bishop) body += `<div class="modal-row"><span class="modal-label">Bishop</span><span class="modal-value" style="color:#e0c870;font-style:italic">${escapeHtml(p.bishop)}</span></div>`;
+    if (p.bishop) body += `<div class="modal-row"><span class="modal-label">Bishop</span><span class="modal-value">${escapeHtml(p.bishop)}</span></div>`;
     if (p.region) body += `<div class="modal-row"><span class="modal-label">Region</span><span class="modal-value">${escapeHtml(p.region)}</span></div>`;
-    if (p.parishCount) body += `<div class="modal-row"><span class="modal-label">Parishes</span><span class="modal-value" style="font-weight:700;color:#ffd">${p.parishCount}</span></div>`;
+    if (p.parishCount) body += `<div class="modal-row"><span class="modal-label">Parishes</span><span class="modal-value">${p.parishCount}</span></div>`;
     body += `</div>`;
 
     if (p.states && p.states.length > 0) {
       body += `<hr class="modal-divider">`;
       body += `<div class="modal-section">`;
-      body += `<div class="modal-section-title"><span class="modal-icon">🗺️</span>Geographic Coverage</div>`;
-      body += `<div class="modal-value" style="padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:6px;border:1px solid rgba(255,255,255,0.08)">${p.states.map(escapeHtml).join(", ")}</div>`;
+      body += `<div class="modal-section-title">Geographic Coverage</div>`;
+      body += `<div class="modal-value">${p.states.map(escapeHtml).join(", ")}</div>`;
       body += `</div>`;
     }
 
@@ -2458,11 +2114,11 @@
       if (overlapping.length > 0) {
         body += `<hr class="modal-divider">`;
         body += `<div class="modal-section">`;
-        body += `<div class="modal-section-title"><span class="modal-icon">⚠️</span>Overlapping Jurisdictions (${overlapping.length})</div>`;
+        body += `<div class="modal-section-title">Overlapping Jurisdictions (${overlapping.length})</div>`;
         overlapping.slice(0, 10).forEach(ov => {
-          body += `<div class="modal-row"><span class="modal-value">• ${escapeHtml(ov.properties.diocese)} <span style="color:#899">(${escapeHtml(abbreviateJurisdiction(ov.properties.jurisdiction))})</span></span></div>`;
+          body += `<div class="modal-row"><span class="modal-value">• ${escapeHtml(ov.properties.diocese)} (${escapeHtml(abbreviateJurisdiction(ov.properties.jurisdiction))})</span></div>`;
         });
-        if (overlapping.length > 10) body += `<div style="color:#899;font-size:0.85rem">…and ${overlapping.length - 10} more</div>`;
+        if (overlapping.length > 10) body += `<div class="modal-footer-meta">…and ${overlapping.length - 10} more</div>`;
         body += `</div>`;
       }
     }
@@ -2474,7 +2130,7 @@
     if (!info.object) return;
     const p = info.object.properties;
     
-    let title = `<span class="modal-icon">🗺️</span>${escapeHtml(p.diocese) || "Parish Territory"}`;
+    let title = `${escapeHtml(p.diocese) || "Parish Territory"}`;
     
     let body = "";
     if (p.patriarchate) {
@@ -2483,21 +2139,21 @@
 
     body += `<hr class="modal-divider">`;
     body += `<div class="modal-section">`;
-    body += `<div class="modal-section-title"><span class="modal-icon">🗺️</span>Territory Information</div>`;
+    body += `<div class="modal-section-title">Territory Information</div>`;
     body += `<div class="modal-row"><span class="modal-label">Territory ID</span><span class="modal-value">${escapeHtml(p.entityId)}</span></div>`;
     body += `<div class="modal-row"><span class="modal-label">Jurisdiction</span><span class="modal-value">${escapeHtml(abbreviateJurisdiction(p.jurisdiction))}</span></div>`;
     if (p.parishNames && p.parishNames.length > 0) {
-      body += `<div class="modal-row"><span class="modal-label">Parishes</span><span class="modal-value" style="font-weight:700;color:#ffd">${p.parishNames.length}</span></div>`;
+      body += `<div class="modal-row"><span class="modal-label">Parishes</span><span class="modal-value">${p.parishNames.length}</span></div>`;
     }
     body += `</div>`;
 
     if (p.parishNames && p.parishNames.length > 0) {
       body += `<hr class="modal-divider">`;
       body += `<div class="modal-section">`;
-      body += `<div class="modal-section-title"><span class="modal-icon">⛪</span>Parishes in Territory</div>`;
+      body += `<div class="modal-section-title">Parishes in Territory</div>`;
       p.parishNames.forEach(n => {
         let line = `<div class="modal-row"><span class="modal-value">• ${escapeHtml(n.name) || "?"}`;
-        if (n.city || n.state) line += ` <span style="color:#899">(${[n.city, n.state].filter(Boolean).map(escapeHtml).join(", ")})</span>`;
+        if (n.city || n.state) line += ` (${[n.city, n.state].filter(Boolean).map(escapeHtml).join(", ")})`;
         line += `</span></div>`;
         body += line;
       });
@@ -2511,42 +2167,16 @@
   function showTooltipDiocese(info) {
     if (!info.object) {
       if (hideTooltipTimeout) clearTimeout(hideTooltipTimeout);
-      hideTooltipTimeout = setTimeout(() => { tooltip.style.display = "none"; }, 300);
+      hideTooltipTimeout = setTimeout(() => { tooltip.classList.remove("visible"); tooltip.style.display = "none"; }, 300);
       return;
     }
     const p = info.object.properties;
-    
-    // Find overlapping dioceses at this point
-    let overlapHtml = "";
-    if (dioceseData && dioceseData.features && info.coordinate) {
-      const pt = turf.point(info.coordinate);
-      const overlapping = dioceseData.features.filter(f => {
-        if (hiddenJurisdictions.has(f.properties.jurisdiction)) return false;
-        const eid = f.properties.entityId || f.properties.diocese;
-        if (eid === (p.entityId || p.diocese)) return false;
-        try { return turf.booleanPointInPolygon(pt, f); } catch { return false; }
-      });
-      if (overlapping.length > 0) {
-        overlapHtml = `<hr class="tt-divider"><div class="tt-section-header"><span class="tt-icon">⚠️</span> Overlapping Jurisdictions</div>`;
-        for (const ov of overlapping.slice(0, 5)) {
-          overlapHtml += `<div style="padding-left:12px;color:#dde;font-size:0.76rem;margin:2px 0">• ${escapeHtml(ov.properties.diocese)} <span style="color:#899">(${escapeHtml(abbreviateJurisdiction(ov.properties.jurisdiction))})</span></div>`;
-        }
-        if (overlapping.length > 5) overlapHtml += `<div style="padding-left:12px;color:#899;font-size:0.74rem">…and ${overlapping.length - 5} more</div>`;
-      }
-    }
-
-    let html = `<strong><span class="tt-icon">⛪</span>${escapeHtml(p.diocese) || "Unknown Diocese"}</strong>`;
-    if (p.patriarchate) html += `<div class="tt-patriarchate">☦︎ ${escapeHtml(p.patriarchate)}</div>`;
-    
-    html += `<hr class="tt-divider">`;
-    html += `<div class="tt-row"><span class="tt-label"><span class="tt-icon">🏛️</span>Jurisdiction</span><span class="tt-value">${escapeHtml(abbreviateJurisdiction(p.jurisdiction))}</span></div>`;
-    if (p.bishop) html += `<div class="tt-row"><span class="tt-label"><span class="tt-icon">👤</span>Bishop</span><span class="tt-value tt-bishop">${escapeHtml(p.bishop)}</span></div>`;
-    if (p.region) html += `<div class="tt-row"><span class="tt-label"><span class="tt-icon">📍</span>Region</span><span class="tt-value">${escapeHtml(p.region)}</span></div>`;
-    if (p.parishCount) html += `<div class="tt-row"><span class="tt-label"><span class="tt-icon">📊</span>Parishes</span><span class="tt-value" style="font-weight:700;color:#ffd">${p.parishCount}</span></div>`;
-    if (p.states && p.states.length > 0) html += `<div class="tt-states"><span class="tt-icon">🗺️</span> Coverage: ${p.states.map(escapeHtml).join(", ")}</div>`;
-    
-    html += overlapHtml;
-
+    let html = `<div class="tt-name">${escapeHtml(p.diocese) || "Unknown Diocese"}</div>`;
+    const parts = [escapeHtml(abbreviateJurisdiction(p.jurisdiction))];
+    if (p.parishCount) parts.push(`${p.parishCount} parishes`);
+    if (p.bishop) parts.push(escapeHtml(p.bishop));
+    html += `<div class="tt-meta">${parts.join(" · ")}</div>`;
+    html += `<div class="tt-hint">Click for details</div>`;
     tooltip.innerHTML = html;
     positionTooltip(info.x, info.y);
   }
@@ -2554,32 +2184,15 @@
   function showTooltipParishPoly(info) {
     if (!info.object) {
       if (hideTooltipTimeout) clearTimeout(hideTooltipTimeout);
-      hideTooltipTimeout = setTimeout(() => { tooltip.style.display = "none"; }, 300);
+      hideTooltipTimeout = setTimeout(() => { tooltip.classList.remove("visible"); tooltip.style.display = "none"; }, 300);
       return;
     }
     const p = info.object.properties;
-    
-    let html = `<strong><span class="tt-icon">🗺️</span>${escapeHtml(p.diocese) || "Parish Territory"}</strong>`;
-    if (p.patriarchate) html += `<div class="tt-patriarchate">☦︎ ${escapeHtml(p.patriarchate)}</div>`;
-    
-    html += `<hr class="tt-divider">`;
-    html += `<div class="tt-row"><span class="tt-label"><span class="tt-icon">🆔</span>Territory</span><span class="tt-value">${escapeHtml(p.entityId)}</span></div>`;
-    html += `<div class="tt-row"><span class="tt-label"><span class="tt-icon">🏛️</span>Jurisdiction</span><span class="tt-value">${escapeHtml(abbreviateJurisdiction(p.jurisdiction))}</span></div>`;
-    
-    if (p.parishNames && p.parishNames.length > 0) {
-      html += `<div class="tt-row"><span class="tt-label"><span class="tt-icon">📊</span>Parishes</span><span class="tt-value" style="font-weight:700;color:#ffd">${p.parishNames.length}</span></div>`;
-      html += `<hr class="tt-divider">`;
-      html += `<div class="tt-section-header"><span class="tt-icon">⛪</span>Parishes in Territory</div>`;
-      const names = p.parishNames.slice(0, 6);
-      names.forEach(n => {
-        let line = `<div style="padding-left:12px;color:#dde;font-size:0.76rem;margin:2px 0">• ${escapeHtml(n.name) || "?"}`;
-        if (n.city || n.state) line += ` <span style="color:#899">(${[n.city, n.state].filter(Boolean).map(escapeHtml).join(", ")})</span>`;
-        line += `</div>`;
-        html += line;
-      });
-      if (p.parishNames.length > 6) html += `<div style="padding-left:12px;color:#899;font-size:0.74rem">…and ${p.parishNames.length - 6} more</div>`;
-    }
-    
+    let html = `<div class="tt-name">${escapeHtml(p.diocese) || "Parish Territory"}</div>`;
+    const parts = [escapeHtml(abbreviateJurisdiction(p.jurisdiction))];
+    if (p.parishNames && p.parishNames.length > 0) parts.push(`${p.parishNames.length} parishes`);
+    html += `<div class="tt-meta">${parts.join(" · ")}</div>`;
+    html += `<div class="tt-hint">Click for details</div>`;
     tooltip.innerHTML = html;
     positionTooltip(info.x, info.y);
   }
@@ -2587,64 +2200,18 @@
   function showTooltipPoint(info) {
     if (!info.object) {
       if (hideTooltipTimeout) clearTimeout(hideTooltipTimeout);
-      hideTooltipTimeout = setTimeout(() => { tooltip.style.display = "none"; }, 300);
+      hideTooltipTimeout = setTimeout(() => { tooltip.classList.remove("visible"); tooltip.style.display = "none"; }, 300);
       return;
     }
     const p = info.object.properties;
-    const coords = info.object.geometry.coordinates;
     const impLabel = IMPORTANCE_LABELS[p.importance];
-    const impBadge = impLabel
-      ? `<span class="tt-importance ${p.importance}">${impLabel}</span>`
-      : "";
-
-    // ── Title row ──
-    let html = `<strong><span class="tt-icon">⛪</span>${escapeHtml(p.name)}</strong>${impBadge}`;
-    if (p.patriarchate) html += `<div class="tt-patriarchate">☦︎ ${escapeHtml(p.patriarchate)}</div>`;
-    
-    // ── Jurisdiction (prominent) ──
-    html += `<div class="tt-jurisdiction"><span class="tt-icon">🏛️</span>${escapeHtml(p.jurisdiction) || "—"}</div>`;
-
-    // ── Location section ──
-    html += `<hr class="tt-divider">`;
-    html += `<div class="tt-section-header"><span class="tt-icon">📍</span>Location</div>`;
-    const locationParts = [p.city, p.state].filter(Boolean).map(escapeHtml);
-    if (p.country && p.country !== "USA" && p.country !== "US") locationParts.push(escapeHtml(p.country));
-    if (locationParts.length > 0) html += `<div class="tt-row"><span class="tt-label">Place</span><span class="tt-value">${locationParts.join(", ")}</span></div>`;
-    if (p.address) html += `<div class="tt-row"><span class="tt-label">Address</span><span class="tt-value tt-address">${escapeHtml(p.address)}<button class="tt-copy-btn" onclick="navigator.clipboard.writeText(this.parentElement.childNodes[0].textContent)">Copy</button></span></div>`;
-    if (coords) html += `<div class="tt-coords">${coords[1].toFixed(6)}, ${coords[0].toFixed(6)}</div>`;
-
-    // ── Hierarchy section ──
-    html += `<hr class="tt-divider">`;
-    html += `<div class="tt-section-header"><span class="tt-icon">⛪</span>Church Hierarchy</div>`;
-    html += `<div class="tt-row"><span class="tt-label">Diocese</span><span class="tt-value">${escapeHtml(p.diocese) || "—"}</span></div>`;
-    if (p.deanery) html += `<div class="tt-row"><span class="tt-label">Deanery</span><span class="tt-value">${escapeHtml(p.deanery)}</span></div>`;
-    if (p.bishop) html += `<div class="tt-row"><span class="tt-label">Bishop</span><span class="tt-value tt-bishop">${escapeHtml(p.bishop)}</span></div>`;
-
-    // ── Contact / clergy section ──
-    if (p.clergy || p.phone || p.email || p.website) {
-      html += `<hr class="tt-divider">`;
-      html += `<div class="tt-section-header"><span class="tt-icon">📞</span>Contact Info</div>`;
-      if (p.clergy) {
-        const clergyHtml = formatClergyDisplay(p.clergy, true);
-        html += `<div class="tt-row"><span class="tt-label">Clergy</span><span class="tt-value">${clergyHtml}</span></div>`;
-      }
-      if (p.phone) html += `<div class="tt-row"><span class="tt-label">Phone</span><span class="tt-value"><a href="tel:${p.phone.replace(/[^0-9+]/g, '')}" class="tt-link">${escapeHtml(p.phone)}</a><button class="tt-copy-btn" onclick="navigator.clipboard.writeText('${p.phone.replace(/[^0-9+() -]/g, '')}')">Copy</button></span></div>`;
-      if (p.email) html += `<div class="tt-row"><span class="tt-label">Email</span><span class="tt-value"><a href="mailto:${escapeHtml(p.email)}" class="tt-link tt-email">${escapeHtml(p.email)}</a></span></div>`;
-      if (p.website) {
-        const shortUrl = p.website.replace(/^https?:\/\//, "").replace(/\/$/, "");
-        html += `<div class="tt-row"><span class="tt-label">Website</span><span class="tt-value"><a href="${escapeHtml(p.website)}" target="_blank" class="tt-link">${escapeHtml(shortUrl)} ↗</a></span></div>`;
-      }
-    }
-
-    // ── Footer ──
-    if (p.clusterId || p.source) {
-      html += `<hr class="tt-divider">`;
-      const metadata = [];
-      if (p.clusterId) metadata.push(`<span style="color:#9aa">Cluster #${escapeHtml(p.clusterId)}</span>`);
-      if (p.source) metadata.push(`<span class="tt-source">Source: ${escapeHtml(p.source)}</span>`);
-      html += `<div style="font-size:0.7rem;display:flex;gap:8px;flex-wrap:wrap">${metadata.join('')}</div>`;
-    }
-
+    const impBadge = impLabel ? `<span class="tt-badge ${p.importance}">${impLabel}</span>` : "";
+    let html = `<div class="tt-name">${escapeHtml(p.name)}${impBadge}</div>`;
+    const parts = [escapeHtml(p.diocese) || escapeHtml(abbreviateJurisdiction(p.jurisdiction))];
+    const loc = [p.city, p.state].filter(Boolean).map(escapeHtml);
+    if (loc.length) parts.push(loc.join(", "));
+    html += `<div class="tt-meta">${parts.join(" · ")}</div>`;
+    html += `<div class="tt-hint">Click for details</div>`;
     tooltip.innerHTML = html;
     positionTooltip(info.x, info.y);
   }
@@ -2661,10 +2228,11 @@
     const rect = document.getElementById("map-container").getBoundingClientRect();
     let left = x + pad;
     let top = y + pad;
-    if (left + 420 > rect.width) left = x - 420 - pad;
-    if (top + 300 > rect.height) top = y - 300 - pad;
+    if (left + 260 > rect.width) left = x - 260 - pad;
+    if (top + 160 > rect.height) top = y - 160 - pad;
     tooltip.style.left = Math.max(0, left) + "px";
     tooltip.style.top = Math.max(0, top) + "px";
+    requestAnimationFrame(() => tooltip.classList.add("visible"));
   }
 
   // Clear hide timeout when mouse enters map
@@ -2675,11 +2243,9 @@
     }
   });
 
-  // Hide tooltip when mouse leaves map (with delay to allow hovering tooltip)
+  // Hide tooltip when mouse leaves map
   document.getElementById("map").addEventListener("mouseleave", () => {
-    hideTooltipTimeout = setTimeout(() => {
-      tooltip.style.display = "none";
-    }, 300);
+    tooltip.classList.remove("visible"); tooltip.style.display = "none";
     
     if (hoveredDiocese !== null) {
       hoveredDiocese = null;

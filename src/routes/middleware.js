@@ -16,6 +16,13 @@ const JURISDICTION_COLORS = {
   "Albanian Orthodox Diocese of America":                     [180, 80, 100, 100],
   "Georgian Orthodox Church":                                 [80, 140, 80, 100],
   "Patriarchal Parishes of the Russian Orthodox Church in the USA": [100, 100, 180, 100],
+  // European jurisdictions
+  "Romanian Orthodox Church":                                [140, 50, 180, 100],
+  "Serbian Orthodox Church":                                 [0, 180, 180, 100],
+  "Ukrainian Orthodox Church":                               [60, 120, 200, 100],
+  "Russian Orthodox Church":                                 [30, 100, 200, 100],
+  "Church of Greece":                                        [200, 170, 30, 100],
+  "Polish Orthodox Church":                                  [180, 140, 60, 100],
 };
 const DEFAULT_COLOR = [128, 128, 128, 100];
 

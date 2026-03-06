@@ -1,0 +1,253 @@
+{
+  "stats": {
+    "naParishes": 1992,
+    "europeanChurches": 35,
+    "totalFeatures": 2027,
+    "dioceses": 30,
+    "clusters": 173,
+    "tier1Polygons": 30,
+    "tier2Polygons": 1801
+  },
+  "colors": {
+    "Russian Orthodox Church Outside of Russia (ROCOR)": [
+      30,
+      100,
+      200,
+      100
+    ],
+    "Orthodox Church in America (OCA)": [
+      200,
+      40,
+      40,
+      100
+    ],
+    "Greek Orthodox Archdiocese of America": [
+      200,
+      170,
+      30,
+      100
+    ],
+    "Antiochian Orthodox Christian Archdiocese of North America": [
+      40,
+      160,
+      60,
+      100
+    ],
+    "Serbian Orthodox Church in North and South America": [
+      0,
+      180,
+      180,
+      100
+    ],
+    "Romanian Orthodox Archdiocese in the Americas": [
+      140,
+      50,
+      180,
+      100
+    ],
+    "Bulgarian Eastern Orthodox Diocese of the USA, Canada, and Australia": [
+      200,
+      120,
+      40,
+      100
+    ],
+    "American Carpatho-Russian Orthodox Diocese": [
+      100,
+      60,
+      30,
+      100
+    ],
+    "Ukrainian Orthodox Church of the USA (UOC-USA)": [
+      60,
+      120,
+      200,
+      100
+    ],
+    "Albanian Orthodox Diocese of America": [
+      180,
+      80,
+      100,
+      100
+    ],
+    "Georgian Orthodox Church": [
+      80,
+      140,
+      80,
+      100
+    ],
+    "Patriarchal Parishes of the Russian Orthodox Church in the USA": [
+      100,
+      100,
+      180,
+      100
+    ],
+    "Romanian Orthodox Church": [
+      140,
+      50,
+      180,
+      100
+    ],
+    "Serbian Orthodox Church": [
+      0,
+      180,
+      180,
+      100
+    ],
+    "Ukrainian Orthodox Church": [
+      60,
+      120,
+      200,
+      100
+    ],
+    "Russian Orthodox Church": [
+      30,
+      100,
+      200,
+      100
+    ],
+    "Church of Greece": [
+      200,
+      170,
+      30,
+      100
+    ],
+    "Polish Orthodox Church": [
+      180,
+      140,
+      60,
+      100
+    ]
+  },
+  "defaultColor": [
+    128,
+    128,
+    128,
+    100
+  ],
+  "dioceses": [
+    {
+      "diocese": "Albanian Orthodox Diocese of America",
+      "jurisdiction": "Albanian Orthodox Diocese of America"
+    },
+    {
+      "diocese": "Bulgarian Eastern Orthodox Diocese",
+      "jurisdiction": "Bulgarian Eastern Orthodox Diocese of the USA, Canada, and Australia"
+    },
+    {
+      "diocese": "Georgian Orthodox Church",
+      "jurisdiction": "Georgian Orthodox Church"
+    },
+    {
+      "diocese": "Direct Archdiocesan District",
+      "jurisdiction": "Greek Orthodox Archdiocese of America"
+    },
+    {
+      "diocese": "Metropolis of Atlanta",
+      "jurisdiction": "Greek Orthodox Archdiocese of America"
+    },
+    {
+      "diocese": "Metropolis of Chicago",
+      "jurisdiction": "Greek Orthodox Archdiocese of America"
+    },
+    {
+      "diocese": "Metropolis of Denver",
+      "jurisdiction": "Greek Orthodox Archdiocese of America"
+    },
+    {
+      "diocese": "Metropolis of Detroit",
+      "jurisdiction": "Greek Orthodox Archdiocese of America"
+    },
+    {
+      "diocese": "Metropolis of New England",
+      "jurisdiction": "Greek Orthodox Archdiocese of America"
+    },
+    {
+      "diocese": "Metropolis of Pittsburgh",
+      "jurisdiction": "Greek Orthodox Archdiocese of America"
+    },
+    {
+      "diocese": "Metropolis of San Francisco",
+      "jurisdiction": "Greek Orthodox Archdiocese of America"
+    },
+    {
+      "diocese": "Albanian Archdiocese",
+      "jurisdiction": "Orthodox Church in America (OCA)"
+    },
+    {
+      "diocese": "Archdiocese of Canada",
+      "jurisdiction": "Orthodox Church in America (OCA)"
+    },
+    {
+      "diocese": "Archdiocese of Washington, D.C.",
+      "jurisdiction": "Orthodox Church in America (OCA)"
+    },
+    {
+      "diocese": "Archdiocese of Western Pennsylvania",
+      "jurisdiction": "Orthodox Church in America (OCA)"
+    },
+    {
+      "diocese": "Bulgarian Diocese",
+      "jurisdiction": "Orthodox Church in America (OCA)"
+    },
+    {
+      "diocese": "Diocese of Alaska",
+      "jurisdiction": "Orthodox Church in America (OCA)"
+    },
+    {
+      "diocese": "Diocese of Eastern Pennsylvania",
+      "jurisdiction": "Orthodox Church in America (OCA)"
+    },
+    {
+      "diocese": "Diocese of Mexico",
+      "jurisdiction": "Orthodox Church in America (OCA)"
+    },
+    {
+      "diocese": "Diocese of New England",
+      "jurisdiction": "Orthodox Church in America (OCA)"
+    },
+    {
+      "diocese": "Diocese of New York and New Jersey",
+      "jurisdiction": "Orthodox Church in America (OCA)"
+    },
+    {
+      "diocese": "Diocese of the Midwest",
+      "jurisdiction": "Orthodox Church in America (OCA)"
+    },
+    {
+      "diocese": "Diocese of the South",
+      "jurisdiction": "Orthodox Church in America (OCA)"
+    },
+    {
+      "diocese": "Diocese of the West",
+      "jurisdiction": "Orthodox Church in America (OCA)"
+    },
+    {
+      "diocese": "Romanian Orthodox Archdiocese in the Americas",
+      "jurisdiction": "Romanian Orthodox Archdiocese in the Americas"
+    },
+    {
+      "diocese": "Diocese of Chicago and Mid-America",
+      "jurisdiction": "Russian Orthodox Church Outside of Russia (ROCOR)"
+    },
+    {
+      "diocese": "Diocese of Montreal and Canada",
+      "jurisdiction": "Russian Orthodox Church Outside of Russia (ROCOR)"
+    },
+    {
+      "diocese": "Diocese of Western America",
+      "jurisdiction": "Russian Orthodox Church Outside of Russia (ROCOR)"
+    },
+    {
+      "diocese": "Eastern American Diocese",
+      "jurisdiction": "Russian Orthodox Church Outside of Russia (ROCOR)"
+    },
+    {
+      "diocese": "UOC-USA",
+      "jurisdiction": "Ukrainian Orthodox Church of the USA (UOC-USA)"
+    }
+  ],
+  "regions": [
+    "North America",
+    "Europe"
+  ]
+}
